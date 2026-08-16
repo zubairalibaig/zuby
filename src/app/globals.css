@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@theme {
+  --color-zuby-50: #fff8f0;
+  --color-zuby-100: #ffedd8;
+  --color-zuby-500: #e8590c;
+  --color-zuby-600: #d9480f;
+  --color-zuby-900: #5c2200;
+}
+
+body {
+  @apply bg-white text-neutral-900 antialiased;
+}

@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    name: Typecheck, lint, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Build
+        run: npm run build
+        env:
+          # Build must succeed without secrets — public pages are static and the
+          # Supabase client is constructed lazily at request time.
+          NEXT_PUBLIC_SITE_URL: https://zuby.food
+
+  migrations:
+    name: Migrations apply cleanly
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: zuby_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Create Supabase-like roles and auth schema
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d zuby_ci -v ON_ERROR_STOP=1 <<'SQL'
+          create role anon nologin;
+          create role authenticated nologin;
+          create role service_role nologin;
+          create schema if not exists auth;
+          create table auth.users (id uuid primary key default gen_random_uuid());
+          create or replace function auth.uid() returns uuid language sql stable as $$
+            select nullif(current_setting('request.jwt.claims', true)::json->>'sub','')::uuid;
+          $$;
+          grant usage on schema auth to anon, authenticated, service_role;
+          grant execute on function auth.uid() to anon, authenticated, service_role;
+          SQL
+
+      - name: Apply migrations + seed
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/zuby_ci
+        run: npm run db:apply -- --seed
+
+      - name: Verify geo search and RLS
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d zuby_ci -v ON_ERROR_STOP=1 <<'SQL'
+          -- Geo search returns seeded chefs near Indiranagar.
+          do $$
+          declare n int;
+          begin
+            select count(*) into n from public.search_chefs(12.9719, 77.6412, 5, null, null, null);
+            if n < 1 then raise exception 'search_chefs returned no rows'; end if;
+          end $$;
+
+          -- anon must never see non-approved chefs or ingest staging.
+          do $$
+          declare n int;
+          begin
+            set local role anon;
+            select count(*) into n from public.chefs where status <> 'approved';
+            if n <> 0 then raise exception 'anon can see non-approved chefs'; end if;
+            select count(*) into n from public.ingest_raw;
+            if n <> 0 then raise exception 'anon can read ingest_raw'; end if;
+          end $$;
+          SQL

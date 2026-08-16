@@ -1,0 +1,7 @@
+# Supabase CLI config (used for `supabase start` local dev and `supabase db push`).
+# Link to the production project with:
+#   supabase link --project-ref nqqqygvuewuxpbaklslo
+project_id = "zuby"
+
+[db]
+major_version = 15
