@@ -28,6 +28,9 @@ jobs:
       - name: Format check
         run: npm run format:check
 
+      - name: setup.sql is in step with the migrations
+        run: node scripts/build-setup-sql.mjs --check
+
       - name: Build
         run: npm run build
         env:
@@ -68,17 +71,34 @@ jobs:
           create role service_role nologin;
           create schema if not exists auth;
           create table auth.users (id uuid primary key default gen_random_uuid());
+          -- Mirrors Supabase's real auth.uid(): nullif BEFORE the json cast, so
+          -- an unset or empty claim yields null instead of erroring.
           create or replace function auth.uid() returns uuid language sql stable as $$
-            select nullif(current_setting('request.jwt.claims', true)::json->>'sub','')::uuid;
+            select nullif(
+              nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub', ''
+            )::uuid;
           $$;
           grant usage on schema auth to anon, authenticated, service_role;
           grant execute on function auth.uid() to anon, authenticated, service_role;
           SQL
 
-      - name: Apply migrations + seed
+      - name: Apply the browser setup file (the founder's real path)
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/zuby_ci
-        run: npm run db:apply -- --seed
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d zuby_ci -v ON_ERROR_STOP=1 -f supabase/setup.sql
+
+      - name: Run the acceptance checks
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d zuby_ci -v ON_ERROR_STOP=1 \
+            -f supabase/verify.sql > /tmp/verify.txt
+          cat /tmp/verify.txt
+          if grep -q 'FAIL' /tmp/verify.txt; then
+            echo "::error::One or more database acceptance checks FAILED"
+            exit 1
+          fi
 
       - name: Verify geo search and RLS
         env:

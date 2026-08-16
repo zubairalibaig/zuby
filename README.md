@@ -10,7 +10,55 @@ Current status: **Phase 0 complete** (foundation). Phase 1 (public directory) is
 
 Next.js (App Router, TypeScript strict) · Tailwind CSS · Supabase (Postgres 15 + PostGIS + Auth + Storage) · Vercel · Cloudflare DNS. Target cost at launch: **$0/month**.
 
-## Setup (10 minutes)
+## Setup — browser only (no terminal needed)
+
+This is the founder's path: everything happens in the Supabase, Vercel and
+GitHub web UIs. No Node, no CLI, no local install.
+
+### 1. Build the database
+
+Supabase dashboard → **SQL Editor** → **New query** → paste the whole of
+[`supabase/setup.sql`](supabase/setup.sql) → **Run**.
+
+> **This drops the entire `public` schema**, including the tables from the
+> earlier Replit project and its `drizzle` schema. Auth users, storage buckets
+> and extensions are not touched. Safe to re-run — it rebuilds from scratch.
+
+### 2. Check it worked
+
+Same SQL Editor → new query → paste [`supabase/verify.sql`](supabase/verify.sql)
+→ **Run**. You should get a table of 20 rows, all ✅ PASS, covering the schema,
+seed data, geo search, privacy (no phone/address leaks), RLS, and the trust
+guard that stops a chef approving themselves.
+
+### 3. Set the Vercel environment variables
+
+Vercel → Project → Settings → Environment Variables (values from Supabase →
+Settings → API):
+
+| Name | Value |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | your Project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the `anon` public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | the `service_role` key — server-side only |
+| `NEXT_PUBLIC_SITE_URL` | `https://zuby.food` |
+
+Redeploy, then open `/api/health` — it should return `{"ok":true,"db":"ok"}`.
+
+### 4. Day-to-day admin
+
+[`supabase/ops.sql`](supabase/ops.sql) holds copy-paste blocks for: making
+yourself an admin, creating the photo storage bucket, approving a chef by hand,
+taking a listing down, and removing the demo data before launch.
+
+**Editing code without a terminal:** use the GitHub web editor (press `.` in any
+repo view, or *Edit this file*). Every push runs CI — typecheck, lint, build,
+plus applying `setup.sql` to a throwaway PostGIS database and running the same
+20 acceptance checks. Vercel deploys `main` automatically.
+
+---
+
+## Setup for contributors with a local toolchain
 
 ### 1. Install
 
