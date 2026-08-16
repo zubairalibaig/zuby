@@ -7,6 +7,8 @@ Zuby (zuby.food) seeds its directory by collecting **publicly available** home-c
 ## Prerequisites
 Phase 0 merged (`ingest_raw` / `ingest_candidates` tables exist). Runs with the service-role key from local machine or GitHub Actions.
 
+> **Operating constraint (added during build):** the founder works from a locked-down laptop with **no local toolchain and no CLI**. Every step must therefore be runnable from a browser: collection and normalisation via a `workflow_dispatch` GitHub Action ("Ingest chefs"), review via a SQL view (`ingest_review`) in the Supabase SQL Editor, and promotion via SQL functions (`promote_ingest_candidate`, `promote_all_clean_candidates`) callable from that same editor or the Action. The CLI still exists for contributors, but it is not the primary path. Promotion logic lives in SQL — one implementation, callable from both.
+
 ## Scope
 
 ### 1. Package setup

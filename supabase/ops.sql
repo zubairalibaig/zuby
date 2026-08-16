@@ -95,7 +95,44 @@ update public.chefs set status = 'delisted' where slug = 'replace-with-chef-slug
 
 
 -- ---------------------------------------------------------------------
--- 6. USEFUL LOOKUPS
+-- 6. INGESTION (Phase 2) — review and promote scraped listings
+-- ---------------------------------------------------------------------
+-- Collection and normalisation run from GitHub -> Actions -> "Ingest chefs".
+-- Review and promotion happen here.
+
+-- What is waiting to be reviewed:
+-- select * from public.ingest_review order by created_at desc;
+
+-- Only the ones that need a human decision:
+-- select candidate_id, kitchen_name, area, duplicate_of, unmapped
+--   from public.ingest_review where status = 'needs_review';
+
+-- Promote a single candidate (creates a pending_review, unclaimed listing):
+-- select public.promote_ingest_candidate('paste-candidate_id-here');
+
+-- Promote everything marked clean:
+-- select public.promote_all_clean_candidates();
+
+-- Discard a candidate you do not want:
+-- update public.ingest_candidates set status = 'discarded' where id = '...';
+
+-- Pipeline health:
+-- select * from public.ingest_stats();
+
+-- Trace a listing back to its source (provenance):
+-- select c.kitchen_name, ic.normalised ->> 'source' as source,
+--        ir.source_url, ir.raw, ir.scraped_at
+--   from public.chefs c
+--   join public.ingest_candidates ic on ic.promoted_chef_id = c.id
+--   left join public.ingest_raw ir on ir.id = ic.ingest_raw_id
+--  where c.slug = 'replace-with-chef-slug';
+
+-- TAKEDOWN — remove a listing immediately on request:
+-- select public.delist_chef('replace-with-chef-slug', 'Removal requested by owner');
+
+
+-- ---------------------------------------------------------------------
+-- 7. USEFUL LOOKUPS
 -- ---------------------------------------------------------------------
 
 -- Everything waiting for review:

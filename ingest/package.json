@@ -1,0 +1,21 @@
+{
+  "name": "@zuby/ingest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Zuby ingestion pipeline: collect public home-chef listings, normalise them, and promote them to unclaimed listings for admin review.",
+  "scripts": {
+    "ingest": "tsx src/cli.ts",
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

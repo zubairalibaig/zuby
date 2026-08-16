@@ -38,6 +38,28 @@ jobs:
           # Supabase client is constructed lazily at request time.
           NEXT_PUBLIC_SITE_URL: https://zuby.food
 
+  ingest:
+    name: Ingest pipeline tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install
+        working-directory: ingest
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck
+        working-directory: ingest
+        run: npm run typecheck
+
+      - name: Test
+        working-directory: ingest
+        run: npm test
+
   migrations:
     name: Migrations apply cleanly
     runs-on: ubuntu-latest

@@ -32,3 +32,4 @@ yarn-error.log*
 # supabase local
 supabase/.branches
 supabase/.temp
+ingest/node_modules

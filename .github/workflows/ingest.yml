@@ -1,0 +1,150 @@
+# Ingest chefs — run entirely from the browser.
+#
+# GitHub → Actions → "Ingest chefs" → Run workflow → fill in the boxes → Run.
+#
+# One-time setup (also in the browser):
+#   Settings → Secrets and variables → Actions → New repository secret
+#     SUPABASE_URL               https://<your-project-ref>.supabase.co
+#     SUPABASE_SERVICE_ROLE_KEY  Supabase → Settings → API → service_role key
+#
+# Nothing this workflow does can put a listing on the public site: promoted
+# listings are created as `pending_review` and need admin approval.
+name: Ingest chefs
+
+on:
+  workflow_dispatch:
+    inputs:
+      step:
+        description: "What to run"
+        required: true
+        default: "collect-and-normalise"
+        type: choice
+        options:
+          - collect-and-normalise
+          - normalise-only
+          - promote-clean
+          - stats
+      source:
+        description: "Where the chefs come from"
+        required: false
+        default: "sheet"
+        type: choice
+        options:
+          - sheet
+          - paste
+          - web
+      sheet_url:
+        description: "Google Sheet / CSV link (source = sheet)"
+        required: false
+        type: string
+      paste_text:
+        description: "Pasted listings, blocks separated by --- (source = paste)"
+        required: false
+        type: string
+      web_urls:
+        description: "Comma-separated public listing page URLs (source = web)"
+        required: false
+        type: string
+      dry_run:
+        description: "Preview only — write nothing to the database"
+        required: false
+        default: true
+        type: boolean
+
+concurrency:
+  group: ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    name: ${{ inputs.step }}
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check the secrets are set
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::Missing secrets. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      - name: Install
+        working-directory: ingest
+        run: npm install --no-audit --no-fund
+
+      - name: Collect
+        if: inputs.step == 'collect-and-normalise'
+        working-directory: ingest
+        env:
+          PASTE_TEXT: ${{ inputs.paste_text }}
+        run: |
+          set -euo pipefail
+          DRY=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then DRY="--dry-run"; fi
+
+          case "${{ inputs.source }}" in
+            sheet)
+              if [ -z "${{ inputs.sheet_url }}" ]; then
+                echo "::error::source=sheet needs a Google Sheet / CSV link."; exit 1
+              fi
+              npm run ingest -- collect --source sheet --url "${{ inputs.sheet_url }}" $DRY
+              ;;
+            paste)
+              npm run ingest -- collect --source paste $DRY
+              ;;
+            web)
+              if [ -z "${{ inputs.web_urls }}" ]; then
+                echo "::error::source=web needs at least one URL."; exit 1
+              fi
+              npm run ingest -- collect --source web --urls "${{ inputs.web_urls }}" $DRY
+              ;;
+          esac
+
+      - name: Normalise
+        if: inputs.step == 'collect-and-normalise' || inputs.step == 'normalise-only'
+        working-directory: ingest
+        run: |
+          set -euo pipefail
+          DRY=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then DRY="--dry-run"; fi
+          npm run ingest -- normalise $DRY
+
+      - name: Promote clean candidates
+        if: inputs.step == 'promote-clean'
+        working-directory: ingest
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "Dry run: nothing promoted. Re-run with 'Preview only' unticked to promote."
+            npm run ingest -- stats
+          else
+            npm run ingest -- promote --all-clean
+          fi
+
+      - name: Stats
+        if: always()
+        working-directory: ingest
+        continue-on-error: true
+        run: npm run ingest -- stats
+
+      - name: What to do next
+        if: always()
+        run: |
+          {
+            echo "### Ingest run finished"
+            echo ""
+            echo "Review what landed in the Supabase SQL Editor:"
+            echo '```sql'
+            echo "select * from ingest_review order by created_at desc;"
+            echo '```'
+            echo ""
+            echo "Promoted listings are **pending_review** — nothing is public until approved."
+          } >> "$GITHUB_STEP_SUMMARY"
