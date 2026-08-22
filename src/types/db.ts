@@ -148,6 +148,7 @@ type ChefRow = {
   verified_at: string | null;
   verified_by: string | null;
   timings: Json | null;
+  pending_edits: Json | null;
   created_at: string;
   updated_at: string;
 };
@@ -442,6 +443,18 @@ export type Database = {
       admin_overview: {
         Args: { p_days?: number };
         Returns: AdminOverview;
+      };
+      chef_set_own_location: {
+        Args: { p_chef_id: string; p_lat: number; p_lng: number };
+        Returns: undefined;
+      };
+      chef_event_stats: {
+        Args: { p_chef_id: string; p_days?: number };
+        Returns: { kind: string; cnt: number }[];
+      };
+      admin_apply_pending_edits: {
+        Args: { p_chef_id: string; p_note?: string | null };
+        Returns: undefined;
       };
     };
     Enums: {

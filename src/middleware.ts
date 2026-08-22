@@ -6,7 +6,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Run on the auth-bearing surfaces only: the admin area and the OAuth
-  // callback. Public directory pages carry no session and don't need this.
-  matcher: ["/admin/:path*", "/auth/:path*"],
+  // Run on the auth-bearing surfaces: admin, chef dashboard, claim flow, and
+  // the OAuth callback. Public directory pages carry no session.
+  matcher: ["/admin/:path*", "/dashboard/:path*", "/claim/:path*", "/login", "/auth/:path*"],
 };

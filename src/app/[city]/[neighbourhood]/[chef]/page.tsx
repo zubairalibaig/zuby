@@ -136,7 +136,7 @@ export default async function ChefPage({ params }: ChefPageProps) {
             <p className="text-amber-700">{copy.chef.unclaimedBannerBody}</p>
           </div>
           <Link
-            href="/for-chefs"
+            href={`/claim/${chef.id}`}
             className="shrink-0 rounded-full bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-600"
           >
             {copy.chef.unclaimedBannerCta}
