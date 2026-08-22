@@ -32,6 +32,28 @@ export type VerificationAction =
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
+/** Shape of public.admin_overview() (jsonb). */
+export interface AdminOverview {
+  counts: {
+    chefs_approved: number;
+    chefs_pending: number;
+    chefs_draft: number;
+    chefs_unclaimed: number;
+    chefs_suspended: number;
+    claims_pending: number;
+    candidates_new: number;
+    candidates_review: number;
+  };
+  events: Partial<Record<EventKind, number>>;
+  top_chefs: {
+    kitchen_name: string;
+    slug: string;
+    city_slug: string;
+    neighbourhood_slug: string | null;
+    wa_clicks: number;
+  }[];
+}
+
 /** One row of public.search_chefs() — the geo discovery query. */
 export type SearchChefResult = {
   id: string;
@@ -283,8 +305,11 @@ export type Database = {
       dietary_tags: Table<DietaryTagRow>;
       chefs: Table<
         ChefRow,
-        Insertable<ChefRow>,
-        Partial<Insertable<ChefRow>>,
+        // These NOT NULL columns carry DB defaults, so they're optional on insert.
+        Insertable<ChefRow, "service_radius_km" | "is_verified" | "status" | "listing_source">,
+        Partial<
+          Insertable<ChefRow, "service_radius_km" | "is_verified" | "status" | "listing_source">
+        >,
         [
           Rel<"chefs_city_id_fkey", ["city_id"], "cities", ["id"]>,
           Rel<"chefs_neighbourhood_id_fkey", ["neighbourhood_id"], "neighbourhoods", ["id"]>,
@@ -310,14 +335,14 @@ export type Database = {
       >;
       menu_items: Table<
         MenuItemRow,
-        Insertable<MenuItemRow>,
-        Partial<Insertable<MenuItemRow>>,
+        Insertable<MenuItemRow, "is_best_seller" | "is_available" | "sort_order">,
+        Partial<Insertable<MenuItemRow, "is_best_seller" | "is_available" | "sort_order">>,
         [Rel<"menu_items_chef_id_fkey", ["chef_id"], "chefs", ["id"]>]
       >;
       chef_photos: Table<
         ChefPhotoRow,
-        Insertable<ChefPhotoRow>,
-        Partial<Insertable<ChefPhotoRow>>,
+        Insertable<ChefPhotoRow, "kind" | "sort_order">,
+        Partial<Insertable<ChefPhotoRow, "kind" | "sort_order">>,
         [Rel<"chef_photos_chef_id_fkey", ["chef_id"], "chefs", ["id"]>]
       >;
       claims: Table<
@@ -381,6 +406,42 @@ export type Database = {
       chef_public_location: {
         Args: { p_chef_id: string };
         Returns: { lat: number; lng: number }[];
+      };
+      admin_set_chef_status: {
+        Args: { p_chef_id: string; p_status: string; p_note?: string | null };
+        Returns: undefined;
+      };
+      admin_request_info: {
+        Args: { p_chef_id: string; p_note: string };
+        Returns: undefined;
+      };
+      admin_verify_fssai: {
+        Args: { p_chef_id: string; p_note?: string | null };
+        Returns: undefined;
+      };
+      admin_set_chef_location: {
+        Args: { p_chef_id: string; p_lat: number; p_lng: number; p_note?: string | null };
+        Returns: undefined;
+      };
+      admin_log_edit: {
+        Args: { p_chef_id: string; p_note: string };
+        Returns: undefined;
+      };
+      admin_decide_claim: {
+        Args: { p_claim_id: string; p_approve: boolean; p_note?: string | null };
+        Returns: undefined;
+      };
+      promote_ingest_candidate: {
+        Args: { candidate_id: string };
+        Returns: string;
+      };
+      ingest_stats: {
+        Args: Record<never, never>;
+        Returns: { metric: string; value: number }[];
+      };
+      admin_overview: {
+        Args: { p_days?: number };
+        Returns: AdminOverview;
       };
     };
     Enums: {

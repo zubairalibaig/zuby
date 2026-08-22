@@ -1089,6 +1089,323 @@ grant execute on function public.chef_public_location(uuid) to anon, authenticat
 
 
 -- =====================================================================
+-- SOURCE: supabase/migrations/20260815000010_admin_functions.sql
+-- =====================================================================
+-- Phase 3: admin action functions and ingest-table admin access.
+--
+-- Every trust-sensitive admin mutation goes through a SECURITY DEFINER function
+-- that (a) re-checks is_admin() at the database, and (b) writes verification_log
+-- in the SAME transaction as the change. That means the audit trail can never
+-- drift from reality, and — with the RLS policies from Phase 0 — an admin
+-- mutation is verified server-side twice: middleware/layout gate, then the DB.
+
+-- ---------------------------------------------------------------------------
+-- Chef status transitions (approve / reject / suspend / delist)
+-- ---------------------------------------------------------------------------
+create or replace function public.admin_set_chef_status(
+  p_chef_id uuid,
+  p_status text,
+  p_note text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_status public.chef_status := p_status::public.chef_status;
+  v_action public.verification_action;
+begin
+  if not public.is_admin() then
+    raise exception 'only admins may change chef status';
+  end if;
+
+  if v_status = 'approved' then
+    v_action := 'approved';
+    update public.chefs
+       set status = 'approved',
+           is_verified = true,
+           verified_at = now(),
+           verified_by = auth.uid()
+     where id = p_chef_id;
+  else
+    v_action := case v_status
+      when 'rejected' then 'rejected'::public.verification_action
+      when 'suspended' then 'suspended'::public.verification_action
+      when 'delisted' then 'delisted'::public.verification_action
+      else 'edited'::public.verification_action
+    end;
+    -- Suspending / delisting a live chef removes the public badge too.
+    update public.chefs
+       set status = v_status,
+           is_verified = case when v_status in ('suspended','delisted','rejected') then false else is_verified end
+     where id = p_chef_id;
+  end if;
+
+  if not found then
+    raise exception 'chef % not found', p_chef_id;
+  end if;
+
+  insert into public.verification_log (chef_id, admin_user_id, action, note)
+  values (p_chef_id, auth.uid(), v_action, p_note);
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Request more info: keep the listing in review, record what's missing.
+-- ---------------------------------------------------------------------------
+create or replace function public.admin_request_info(p_chef_id uuid, p_note text)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'only admins may request info';
+  end if;
+
+  update public.chefs set status = 'pending_review'
+   where id = p_chef_id and status <> 'approved';
+
+  insert into public.verification_log (chef_id, admin_user_id, action, note)
+  values (p_chef_id, auth.uid(), 'info_requested', p_note);
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Manual FSSAI verification (visual check, no external API in V1).
+-- ---------------------------------------------------------------------------
+create or replace function public.admin_verify_fssai(p_chef_id uuid, p_note text default null)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'only admins may verify FSSAI';
+  end if;
+
+  update public.chefs
+     set fssai_verified_at = now(), fssai_verified_by = auth.uid()
+   where id = p_chef_id;
+  if not found then
+    raise exception 'chef % not found', p_chef_id;
+  end if;
+
+  insert into public.verification_log (chef_id, admin_user_id, action, note)
+  values (p_chef_id, auth.uid(), 'edited', coalesce(p_note, 'FSSAI number verified'));
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Location (PostGIS geography is awkward over PostgREST — set it here).
+-- ---------------------------------------------------------------------------
+create or replace function public.admin_set_chef_location(
+  p_chef_id uuid,
+  p_lat double precision,
+  p_lng double precision,
+  p_note text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions, pg_temp
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'only admins may set location';
+  end if;
+
+  update public.chefs
+     set location = st_setsrid(st_makepoint(p_lng, p_lat), 4326)::geography
+   where id = p_chef_id;
+  if not found then
+    raise exception 'chef % not found', p_chef_id;
+  end if;
+
+  insert into public.verification_log (chef_id, admin_user_id, action, note)
+  values (p_chef_id, auth.uid(), 'edited', coalesce(p_note, 'Location updated'));
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Generic "an admin edited this" audit row, written after a plain-column
+-- update done through the normal supabase-js client.
+-- ---------------------------------------------------------------------------
+create or replace function public.admin_log_edit(p_chef_id uuid, p_note text)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'only admins may log edits';
+  end if;
+  insert into public.verification_log (chef_id, admin_user_id, action, note)
+  values (p_chef_id, auth.uid(), 'edited', p_note);
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Claim decisions (links chefs.claimed_by on approval).
+-- ---------------------------------------------------------------------------
+create or replace function public.admin_decide_claim(
+  p_claim_id uuid,
+  p_approve boolean,
+  p_note text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_claim public.claims%rowtype;
+begin
+  if not public.is_admin() then
+    raise exception 'only admins may decide claims';
+  end if;
+
+  select * into v_claim from public.claims where id = p_claim_id;
+  if not found then
+    raise exception 'claim % not found', p_claim_id;
+  end if;
+
+  update public.claims
+     set status = case when p_approve then 'approved' else 'rejected' end::public.claim_status,
+         decided_by = auth.uid(),
+         decided_at = now()
+   where id = p_claim_id;
+
+  if p_approve then
+    update public.chefs
+       set claimed_by = v_claim.claimant_user_id,
+           listing_source = 'claimed'
+     where id = v_claim.chef_id;
+  end if;
+
+  insert into public.verification_log (chef_id, admin_user_id, action, note)
+  values (
+    v_claim.chef_id,
+    auth.uid(),
+    case when p_approve then 'claim_approved' else 'claim_rejected' end::public.verification_action,
+    p_note
+  );
+end;
+$$;
+
+-- Lock down and grant. Execute is allowed for authenticated (the is_admin()
+-- check inside each function is the real gate); anon can never call them.
+revoke all on function
+  public.admin_set_chef_status(uuid, text, text),
+  public.admin_request_info(uuid, text),
+  public.admin_verify_fssai(uuid, text),
+  public.admin_set_chef_location(uuid, double precision, double precision, text),
+  public.admin_log_edit(uuid, text),
+  public.admin_decide_claim(uuid, boolean, text)
+  from public, anon;
+
+grant execute on function
+  public.admin_set_chef_status(uuid, text, text),
+  public.admin_request_info(uuid, text),
+  public.admin_verify_fssai(uuid, text),
+  public.admin_set_chef_location(uuid, double precision, double precision, text),
+  public.admin_log_edit(uuid, text),
+  public.admin_decide_claim(uuid, boolean, text)
+  to authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- Ingest tables: admins may read raw + candidates and update candidate status
+-- from the browser (the Phase 3 /admin/ingest UI). Scrapers still use the
+-- service role; anon still sees nothing.
+-- ---------------------------------------------------------------------------
+create policy "admin read" on public.ingest_raw
+  for select to authenticated using (public.is_admin());
+
+create policy "admin read" on public.ingest_candidates
+  for select to authenticated using (public.is_admin());
+
+create policy "admin update" on public.ingest_candidates
+  for update to authenticated using (public.is_admin()) with check (public.is_admin());
+
+
+-- =====================================================================
+-- SOURCE: supabase/migrations/20260815000011_admin_overview.sql
+-- =====================================================================
+-- Phase 3: one round-trip for the admin dashboard. All aggregation in SQL,
+-- admin-gated, returned as jsonb so the UI reads one object.
+create or replace function public.admin_overview(p_days integer default 7)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  result jsonb;
+begin
+  if not public.is_admin() then
+    raise exception 'admins only';
+  end if;
+
+  select jsonb_build_object(
+    'counts', jsonb_build_object(
+      'chefs_approved',   (select count(*) from public.chefs where status = 'approved'),
+      'chefs_pending',    (select count(*) from public.chefs where status = 'pending_review'),
+      'chefs_draft',      (select count(*) from public.chefs where status = 'draft'),
+      'chefs_unclaimed',  (select count(*) from public.chefs where claimed_by is null and status = 'approved'),
+      'chefs_suspended',  (select count(*) from public.chefs where status in ('suspended','delisted')),
+      'claims_pending',   (select count(*) from public.claims where status = 'pending'),
+      'candidates_new',   (select count(*) from public.ingest_candidates where status = 'new'),
+      'candidates_review',(select count(*) from public.ingest_candidates where status = 'needs_review')
+    ),
+    'events', (
+      select coalesce(jsonb_object_agg(kind, total), '{}'::jsonb)
+      from (
+        select kind::text as kind, count(*) as total
+        from public.events
+        where created_at > now() - make_interval(days => p_days)
+        group by kind
+      ) e
+    ),
+    'top_chefs', coalesce((
+      select jsonb_agg(row_to_json(t))
+      from (
+        select c.kitchen_name, c.slug, c.city_slug, c.neighbourhood_slug, t.wa_clicks
+        from (
+          select ev.chef_id, count(*) as wa_clicks
+          from public.events ev
+          where ev.kind = 'wa_click'
+            and ev.created_at > now() - make_interval(days => p_days)
+            and ev.chef_id is not null
+          group by ev.chef_id
+          order by count(*) desc
+          limit 5
+        ) t
+        join (
+          select ch.id, ch.kitchen_name, ch.slug,
+                 ci.slug as city_slug, n.slug as neighbourhood_slug
+          from public.chefs ch
+          join public.cities ci on ci.id = ch.city_id
+          left join public.neighbourhoods n on n.id = ch.neighbourhood_id
+        ) c on c.id = t.chef_id
+        order by t.wa_clicks desc
+      ) t
+    ), '[]'::jsonb)
+  ) into result;
+
+  return result;
+end;
+$$;
+
+revoke all on function public.admin_overview(integer) from public, anon;
+grant execute on function public.admin_overview(integer) to authenticated, service_role;
+
+
+-- =====================================================================
 -- SOURCE: supabase/seed.sql
 -- =====================================================================
 -- Phase 0 seed data. Idempotent (fixed UUIDs + on conflict do nothing).
