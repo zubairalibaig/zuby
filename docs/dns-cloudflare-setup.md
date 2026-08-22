@@ -111,3 +111,53 @@ If all three work, you're fully done — tell me and I'll double check `/api/hea
 - **Vercel shows "Invalid Configuration" for over an hour:** re-check the exact record values (Cloudflare vs. what Vercel currently asks for — Vercel occasionally updates the expected IP, so re-copy it rather than trusting this document's example value).
 - **"Too many redirects" error in the browser:** you're in Flexible SSL mode — go back to Step 5 and set Full (strict).
 - **Email stopped working after switching nameservers:** the `MX` records didn't carry over in Step 1 — add them manually in Cloudflare DNS (same values your registrar had), matching your email provider's documentation (e.g. Google Workspace, Zoho Mail).
+
+---
+
+## Update — resolving "Invalid Configuration" + "Proxy Detected" (the real-world path)
+
+After the nameserver switch, two things commonly still show red in Vercel. Here's
+the tested fix, and it supersedes Steps 4–7 above where they differ.
+
+### Keep the app's DNS records "DNS only" (grey cloud), not proxied
+
+Vercel explicitly warns when Cloudflare's orange-cloud proxy sits in front of it
+("Proxy Detected") — it breaks Vercel's DDoS/bot mitigation and, combined with
+Vercel's forced HTTPS, is the classic redirect-loop trap. The simplest reliable
+setup is to leave Cloudflare as **pure DNS** for the Vercel records:
+
+- `zuby.food` A → `76.76.21.21` — **DNS only (grey)**
+- `www.zuby.food` CNAME → `zuby.food` — **DNS only (grey)**
+
+Vercel's own CDN (included on Hobby) still serves pages fast; you only forgo
+Cloudflare's WAF, which isn't needed at launch. To use Cloudflare's proxy later,
+re-enable orange cloud **only after** setting SSL/TLS to **Full (strict)**.
+
+### Use the legacy A record, ignore the new CNAME recommendation
+
+Vercel is migrating to per-project targets like
+`d2915ef4…vercel-dns-017.com`, but its UI notes the **legacy `76.76.21.21` A
+record still works** — and an apex A record is simpler than apex-CNAME
+flattening. Keep the A record; you don't need to add a CNAME.
+
+### Delete stale registrar parking records
+
+If Cloudflare imported the old GoDaddy forwarding A records
+(e.g. `15.197.148.33`, `3.33.130.190`), **delete them** — with proxy on,
+Cloudflare round-robins to all A-record origins, so any non-Vercel IP breaks a
+share of requests and keeps Vercel on "Invalid Configuration."
+
+### Apex is primary, www redirects (matches the code)
+
+The codebase's canonical URLs (`metadataBase`, sitemap, robots, JSON-LD) are all
+`https://zuby.food` with **no www**. So in Vercel → Settings → Domains, set
+`zuby.food` as the **primary** and `www.zuby.food` to **redirect to it** — not
+the reverse — or Google gets a canonical/redirect mismatch. Keep
+`NEXT_PUBLIC_SITE_URL=https://zuby.food`.
+
+Final DNS records for the app (besides email/`_dmarc`/`_domainconnect`):
+
+| Type | Name | Value | Proxy |
+|---|---|---|---|
+| A | `@` (zuby.food) | `76.76.21.21` | DNS only |
+| CNAME | `www` | `zuby.food` | DNS only |
