@@ -33,7 +33,7 @@ export type VerificationAction =
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
 /** One row of public.search_chefs() — the geo discovery query. */
-export interface SearchChefResult {
+export type SearchChefResult = {
   id: string;
   slug: string;
   kitchen_name: string;
@@ -54,9 +54,9 @@ export interface SearchChefResult {
   approx_lng: number;
   cuisines: string[];
   dietary_tags: string[];
-}
+};
 
-interface CountryRow {
+type CountryRow = {
   id: string;
   code: string;
   name: string;
@@ -64,9 +64,9 @@ interface CountryRow {
   phone_prefix: string;
   is_active: boolean;
   created_at: string;
-}
+};
 
-interface CityRow {
+type CityRow = {
   id: string;
   country_id: string;
   slug: string;
@@ -74,31 +74,31 @@ interface CityRow {
   timezone: string;
   is_active: boolean;
   created_at: string;
-}
+};
 
-interface NeighbourhoodRow {
+type NeighbourhoodRow = {
   id: string;
   city_id: string;
   slug: string;
   name: string;
   created_at: string;
-}
+};
 
-interface CuisineRow {
+type CuisineRow = {
   id: string;
   slug: string;
   name: string;
   created_at: string;
-}
+};
 
-interface DietaryTagRow {
+type DietaryTagRow = {
   id: string;
   slug: string;
   name: string;
   created_at: string;
-}
+};
 
-interface ChefRow {
+type ChefRow = {
   id: string;
   city_id: string;
   neighbourhood_id: string | null;
@@ -128,9 +128,9 @@ interface ChefRow {
   timings: Json | null;
   created_at: string;
   updated_at: string;
-}
+};
 
-interface MenuItemRow {
+type MenuItemRow = {
   id: string;
   chef_id: string;
   name: string;
@@ -146,18 +146,18 @@ interface MenuItemRow {
   sort_order: number;
   created_at: string;
   updated_at: string;
-}
+};
 
-interface ChefPhotoRow {
+type ChefPhotoRow = {
   id: string;
   chef_id: string;
   url: string;
   kind: PhotoKind;
   sort_order: number;
   created_at: string;
-}
+};
 
-interface ClaimRow {
+type ClaimRow = {
   id: string;
   chef_id: string;
   claimant_user_id: string;
@@ -167,18 +167,18 @@ interface ClaimRow {
   decided_by: string | null;
   decided_at: string | null;
   created_at: string;
-}
+};
 
-interface VerificationLogRow {
+type VerificationLogRow = {
   id: string;
   chef_id: string;
   admin_user_id: string | null;
   action: VerificationAction;
   note: string | null;
   created_at: string;
-}
+};
 
-interface EventRow {
+type EventRow = {
   id: number;
   kind: EventKind;
   chef_id: string | null;
@@ -186,18 +186,18 @@ interface EventRow {
   geohash5: string | null;
   metadata: Json | null;
   created_at: string;
-}
+};
 
-interface IngestRawRow {
+type IngestRawRow = {
   id: string;
   source: string;
   source_url: string | null;
   raw: Json;
   dedupe_key: string;
   scraped_at: string;
-}
+};
 
-interface IngestCandidateRow {
+type IngestCandidateRow = {
   id: string;
   ingest_raw_id: string | null;
   normalised: Json;
@@ -205,43 +205,152 @@ interface IngestCandidateRow {
   promoted_chef_id: string | null;
   created_at: string;
   updated_at: string;
-}
+};
 
-interface AdminRow {
+type AdminRow = {
   user_id: string;
   email: string;
   created_at: string;
-}
+};
 
-/** Insert/Update helpers: id + timestamps are DB-defaulted. */
-type Insertable<T, Optional extends keyof T = never> = Omit<T, "created_at" | "updated_at" | "id"> &
-  Partial<Pick<T, Extract<"id" | "created_at" | "updated_at" | Optional, keyof T>>>;
+/**
+ * Insert helper: id/created_at/updated_at, any explicitly-named DB-defaulted
+ * column (`Optional`), AND every nullable column are optional on insert —
+ * matching how `supabase gen types typescript` actually treats a nullable
+ * column (it may always be omitted in favour of NULL).
+ */
+type NullableKeys<T> = { [K in keyof T]: null extends T[K] ? K : never }[keyof T];
+type Insertable<T, Optional extends keyof T = never> = Omit<
+  T,
+  "created_at" | "updated_at" | "id" | Optional | NullableKeys<T>
+> &
+  Partial<
+    Pick<T, Extract<"id" | "created_at" | "updated_at" | Optional, keyof T> | NullableKeys<T>>
+  >;
 
-interface Table<Row, Insert = Insertable<Row>, Update = Partial<Insert>> {
+/** Matches postgrest-js's GenericRelationship shape (kept structural — not imported). */
+type Rel<
+  FK extends string,
+  Columns extends readonly string[],
+  Referenced extends string,
+  RefColumns extends readonly string[],
+  OneToOne extends boolean = false,
+> = {
+  foreignKeyName: FK;
+  columns: Columns;
+  isOneToOne: OneToOne;
+  referencedRelation: Referenced;
+  referencedColumns: RefColumns;
+};
+
+/**
+ * Row/Insert/Update as usual, plus the FK metadata postgrest-js's typed
+ * query parser needs to resolve embedded selects like `cities(name)`. Every
+ * FK here mirrors `supabase/migrations/*.sql` — Postgres' default
+ * `<table>_<column>_fkey` naming, since none of our FKs use an explicit
+ * constraint name. FKs to `auth.users` are omitted: that schema isn't
+ * modelled here, so those columns are plain scalars, not embeds.
+ */
+interface Table<
+  Row,
+  Insert = Insertable<Row>,
+  Update = Partial<Insert>,
+  Relationships extends readonly unknown[] = [],
+> {
   Row: Row;
   Insert: Insert;
   Update: Update;
-  Relationships: [];
+  Relationships: Relationships;
 }
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       countries: Table<CountryRow>;
-      cities: Table<CityRow>;
-      neighbourhoods: Table<NeighbourhoodRow>;
+      cities: Table<
+        CityRow,
+        Insertable<CityRow>,
+        Partial<Insertable<CityRow>>,
+        [Rel<"cities_country_id_fkey", ["country_id"], "countries", ["id"]>]
+      >;
+      neighbourhoods: Table<
+        NeighbourhoodRow,
+        Insertable<NeighbourhoodRow>,
+        Partial<Insertable<NeighbourhoodRow>>,
+        [Rel<"neighbourhoods_city_id_fkey", ["city_id"], "cities", ["id"]>]
+      >;
       cuisines: Table<CuisineRow>;
       dietary_tags: Table<DietaryTagRow>;
-      chefs: Table<ChefRow>;
-      chef_cuisines: Table<{ chef_id: string; cuisine_id: string }>;
-      chef_dietary_tags: Table<{ chef_id: string; tag_id: string }>;
-      menu_items: Table<MenuItemRow>;
-      chef_photos: Table<ChefPhotoRow>;
-      claims: Table<ClaimRow>;
-      verification_log: Table<VerificationLogRow>;
-      events: Table<EventRow>;
+      chefs: Table<
+        ChefRow,
+        Insertable<ChefRow>,
+        Partial<Insertable<ChefRow>>,
+        [
+          Rel<"chefs_city_id_fkey", ["city_id"], "cities", ["id"]>,
+          Rel<"chefs_neighbourhood_id_fkey", ["neighbourhood_id"], "neighbourhoods", ["id"]>,
+        ]
+      >;
+      chef_cuisines: Table<
+        { chef_id: string; cuisine_id: string },
+        { chef_id: string; cuisine_id: string },
+        Partial<{ chef_id: string; cuisine_id: string }>,
+        [
+          Rel<"chef_cuisines_chef_id_fkey", ["chef_id"], "chefs", ["id"]>,
+          Rel<"chef_cuisines_cuisine_id_fkey", ["cuisine_id"], "cuisines", ["id"]>,
+        ]
+      >;
+      chef_dietary_tags: Table<
+        { chef_id: string; tag_id: string },
+        { chef_id: string; tag_id: string },
+        Partial<{ chef_id: string; tag_id: string }>,
+        [
+          Rel<"chef_dietary_tags_chef_id_fkey", ["chef_id"], "chefs", ["id"]>,
+          Rel<"chef_dietary_tags_tag_id_fkey", ["tag_id"], "dietary_tags", ["id"]>,
+        ]
+      >;
+      menu_items: Table<
+        MenuItemRow,
+        Insertable<MenuItemRow>,
+        Partial<Insertable<MenuItemRow>>,
+        [Rel<"menu_items_chef_id_fkey", ["chef_id"], "chefs", ["id"]>]
+      >;
+      chef_photos: Table<
+        ChefPhotoRow,
+        Insertable<ChefPhotoRow>,
+        Partial<Insertable<ChefPhotoRow>>,
+        [Rel<"chef_photos_chef_id_fkey", ["chef_id"], "chefs", ["id"]>]
+      >;
+      claims: Table<
+        ClaimRow,
+        Insertable<ClaimRow>,
+        Partial<Insertable<ClaimRow>>,
+        [Rel<"claims_chef_id_fkey", ["chef_id"], "chefs", ["id"]>]
+      >;
+      verification_log: Table<
+        VerificationLogRow,
+        Insertable<VerificationLogRow>,
+        Partial<Insertable<VerificationLogRow>>,
+        [Rel<"verification_log_chef_id_fkey", ["chef_id"], "chefs", ["id"]>]
+      >;
+      events: Table<
+        EventRow,
+        Insertable<EventRow>,
+        Partial<Insertable<EventRow>>,
+        [
+          Rel<"events_chef_id_fkey", ["chef_id"], "chefs", ["id"]>,
+          Rel<"events_city_id_fkey", ["city_id"], "cities", ["id"]>,
+        ]
+      >;
       ingest_raw: Table<IngestRawRow>;
-      ingest_candidates: Table<IngestCandidateRow>;
+      ingest_candidates: Table<
+        IngestCandidateRow,
+        Insertable<IngestCandidateRow>,
+        Partial<Insertable<IngestCandidateRow>>,
+        [
+          Rel<"ingest_candidates_ingest_raw_id_fkey", ["ingest_raw_id"], "ingest_raw", ["id"]>,
+          Rel<"ingest_candidates_promoted_chef_id_fkey", ["promoted_chef_id"], "chefs", ["id"]>,
+        ]
+      >;
       admins: Table<AdminRow>;
     };
     Views: Record<never, never>;
@@ -261,6 +370,18 @@ export interface Database {
         Args: Record<never, never>;
         Returns: boolean;
       };
+      neighbourhood_centroids: {
+        Args: Record<never, never>;
+        Returns: { slug: string; name: string; city_slug: string; lat: number; lng: number }[];
+      };
+      city_centroids: {
+        Args: Record<never, never>;
+        Returns: { slug: string; name: string; country_code: string; lat: number; lng: number }[];
+      };
+      chef_public_location: {
+        Args: { p_chef_id: string };
+        Returns: { lat: number; lng: number }[];
+      };
     };
     Enums: {
       chef_status: ChefStatus;
@@ -275,4 +396,4 @@ export interface Database {
     };
     CompositeTypes: Record<never, never>;
   };
-}
+};

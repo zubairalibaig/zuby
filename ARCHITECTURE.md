@@ -10,7 +10,7 @@
 | Framework | **Next.js (App Router, TypeScript)** | Server rendering for SEO, ISR for near-static speed, one codebase for buyer site + chef dashboard + admin | $0 |
 | Hosting | **Vercel Hobby** | Zero-config Next.js hosting, global CDN, free SSL for zuby.food | $0 |
 | Database | **Supabase Free (Postgres 15 + PostGIS)** | Real geo-indexed radius queries, generous free tier, managed backups | $0 |
-| Auth | **Supabase Auth** | Phone OTP + Google login for chefs/admins; buyers never log in in V1 | $0 |
+| Auth | **Supabase Auth** | Email OTP (no password) + Google login for chefs/admins; buyers never log in in V1. No phone-based login — India's DLT template registration + a paid SMS provider (Twilio/MSG91) is real recurring cost for a pre-revenue product | $0 |
 | File storage | **Supabase Storage** | Chef photos, menu photos; served via CDN with image transforms | $0 (1 GB) |
 | DNS / edge | **Cloudflare (free)** | DNS for zuby.food, caching, basic WAF/bot protection | $0 |
 | Styling | **Tailwind CSS + shadcn/ui** | Fast to build, small CSS output, no design-system bikeshedding | $0 |

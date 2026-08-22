@@ -30,7 +30,7 @@ Phases 0–2 merged. Founder's email present in `admins` table.
 - Web UI over Phase 2's promoter: list `ingest_candidates` by status; detail shows normalised fields + confidence + raw source; actions: promote (→ pending_review chef), edit-then-promote, discard, merge-into-existing (for dupes). Replaces CLI promotion for daily use.
 
 ### 5. Claims inbox — `/admin/claims` (build UI now, traffic arrives in Phase 4)
-- List `claims` with chef + claimant details and proof note; approve (links `chefs.claimed_by`, logs `claim_approved`) or reject with reason. Approving a claim does not auto-approve content changes — those still queue.
+- List `claims` with chef + claimant details and proof note. For a WhatsApp self-verification claim (Phase 4), the proof note carries the generated code and the listing's own `whatsapp_e164` — the admin's job is a 10-second visual check: does that code appear in a WhatsApp message actually received from that number? Approve (links `chefs.claimed_by`, logs `claim_approved`) or reject with reason either way. Approving a claim does not auto-approve content changes — those still queue.
 
 ### 6. Ops dashboard — `/admin` home
 - Counts: approved/pending/unclaimed chefs, claims pending, candidates awaiting review; last-7-days `wa_click` and `profile_view` totals and top-5 chefs by clicks (plain SQL over `events`, no chart library needed — numbers and simple bars).

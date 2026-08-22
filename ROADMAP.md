@@ -15,7 +15,7 @@ Each `prompts/phase-N-*.md` file is written as a standalone instruction set for 
 | 1 | [Public directory](prompts/phase-1-public-directory.md) | Read-only buyer site: city/neighbourhood/cuisine pages, chef profiles, geo "near me" search, filters, WhatsApp CTA + click tracking, SEO/JSON-LD/sitemap | 0 |
 | 2 | [Ingestion pipeline](prompts/phase-2-ingestion.md) | `/ingest` scrapers → staging tables → normalise/dedupe → promote to unclaimed listings | 0 (parallel with 1) |
 | 3 | [Admin panel](prompts/phase-3-admin.md) | Verification queue, approve/reject with audit log, listing editor, ingest-candidate review, claims inbox | 1, 2 |
-| 4 | [Chef auth, claim & self-serve](prompts/phase-4-chef-dashboard.md) | Chef login (phone OTP/Google), claim-your-listing flow, create new listing, manage menu/photos/timings/prices/nutrition/tags/best-sellers | 3 |
+| 4 | [Chef auth, claim & self-serve](prompts/phase-4-chef-dashboard.md) | Chef login (email OTP/Google), claim-your-listing flow (WhatsApp self-verification), create new listing, manage menu/photos/timings/prices/nutrition/tags/best-sellers | 3 |
 | 5 | [SEO & growth hardening](prompts/phase-5-seo-growth.md) | Programmatic landing pages at scale, metadata polish, PWA install, performance budget, analytics dashboards on `events` | 1–4 live |
 | 6 | [Singapore enablement](prompts/phase-6-singapore.md) | Activate SG: cities/areas seed, SGD, SFA/MUIS surfacing, halal-first positioning — config + data, near-zero code | 5 + founder go |
 
