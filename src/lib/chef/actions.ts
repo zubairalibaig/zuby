@@ -18,20 +18,13 @@ export interface ActionResult {
 }
 
 /** Verify the caller owns this chef. */
-async function requireOwnership(
-  supabase: Client,
-  chefId: string,
-): Promise<{ userId: string }> {
+async function requireOwnership(supabase: Client, chefId: string): Promise<{ userId: string }> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  const { data } = await supabase
-    .from("chefs")
-    .select("claimed_by")
-    .eq("id", chefId)
-    .maybeSingle();
+  const { data } = await supabase.from("chefs").select("claimed_by").eq("id", chefId).maybeSingle();
   if (!data || data.claimed_by !== user.id) throw new Error("Not your listing");
   return { userId: user.id };
 }
@@ -139,7 +132,8 @@ export async function saveChefDraft(
     // Validate what's provided.
     if (fields.whatsappE164) {
       const parsed = e164Schema.safeParse(fields.whatsappE164);
-      if (!parsed.success) return { ok: false, error: "WhatsApp number must be E.164 format (e.g. +919900000001)" };
+      if (!parsed.success)
+        return { ok: false, error: "WhatsApp number must be E.164 format (e.g. +919900000001)" };
     }
     if (fields.fssaiNumber) {
       const parsed = fssaiSchema.safeParse(fields.fssaiNumber);
@@ -188,10 +182,24 @@ export async function saveChefDraft(
 
     // Sync cuisines + dietary tags.
     if (fields.cuisineSlugs !== undefined) {
-      await syncJoin(supabase, "chef_cuisines", "cuisine_id", chefId, fields.cuisineSlugs, "cuisines");
+      await syncJoin(
+        supabase,
+        "chef_cuisines",
+        "cuisine_id",
+        chefId,
+        fields.cuisineSlugs,
+        "cuisines",
+      );
     }
     if (fields.dietaryTagSlugs !== undefined) {
-      await syncJoin(supabase, "chef_dietary_tags", "tag_id", chefId, fields.dietaryTagSlugs, "dietary_tags");
+      await syncJoin(
+        supabase,
+        "chef_dietary_tags",
+        "tag_id",
+        chefId,
+        fields.dietaryTagSlugs,
+        "dietary_tags",
+      );
     }
 
     revalidatePath("/dashboard");
@@ -261,7 +269,11 @@ export async function chefSaveMenuItem(
     }
 
     let nutrition: Json | null = null;
-    if (item.nutrition && typeof item.nutrition === "object" && Object.keys(item.nutrition).length > 0) {
+    if (
+      item.nutrition &&
+      typeof item.nutrition === "object" &&
+      Object.keys(item.nutrition).length > 0
+    ) {
       const parsed = nutritionSchema.safeParse(item.nutrition);
       if (!parsed.success) return { ok: false, error: "Nutrition values are invalid." };
       nutrition = parsed.data as unknown as Json;
@@ -366,8 +378,7 @@ export async function chefAddPhoto(
       .from("chef_photos")
       .select("id", { count: "exact", head: true })
       .eq("chef_id", chefId);
-    if ((count ?? 0) >= 8)
-      return { ok: false, error: "Maximum 8 photos allowed." };
+    if ((count ?? 0) >= 8) return { ok: false, error: "Maximum 8 photos allowed." };
 
     const { data: created, error } = await supabase
       .from("chef_photos")
@@ -535,10 +546,24 @@ export async function chefSaveProfile(
 
     // Sync cuisines + tags.
     if (input.cuisineSlugs !== undefined) {
-      await syncJoin(supabase, "chef_cuisines", "cuisine_id", chefId, input.cuisineSlugs, "cuisines");
+      await syncJoin(
+        supabase,
+        "chef_cuisines",
+        "cuisine_id",
+        chefId,
+        input.cuisineSlugs,
+        "cuisines",
+      );
     }
     if (input.dietaryTagSlugs !== undefined) {
-      await syncJoin(supabase, "chef_dietary_tags", "tag_id", chefId, input.dietaryTagSlugs, "dietary_tags");
+      await syncJoin(
+        supabase,
+        "chef_dietary_tags",
+        "tag_id",
+        chefId,
+        input.dietaryTagSlugs,
+        "dietary_tags",
+      );
     }
 
     await revalidateChef(supabase, chefId);
@@ -560,10 +585,7 @@ export async function chefSaveProfile(
  * admin has something to match the incoming message against — the wa.me link
  * only opens after this succeeds.
  */
-export async function submitWhatsAppClaim(
-  chefId: string,
-  code: string,
-): Promise<ActionResult> {
+export async function submitWhatsAppClaim(chefId: string, code: string): Promise<ActionResult> {
   const result = await submitClaim(chefId, {
     proofNote:
       `WhatsApp self-verification. Code: ${code}. ` +

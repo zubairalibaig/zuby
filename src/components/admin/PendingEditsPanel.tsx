@@ -99,9 +99,7 @@ export function PendingEditsPanel({ chef }: Props) {
             const unchanged = current === proposed;
             return (
               <tr key={key} className="border-t border-amber-200 align-top">
-                <td className="py-2 pr-3 font-medium text-neutral-700">
-                  {FIELD_LABELS[key]}
-                </td>
+                <td className="py-2 pr-3 font-medium text-neutral-700">{FIELD_LABELS[key]}</td>
                 <td className="py-2 pr-3 text-neutral-500 line-through decoration-neutral-400">
                   {current ?? "—"}
                 </td>
@@ -121,8 +119,8 @@ export function PendingEditsPanel({ chef }: Props) {
 
       {fssaiChanged && (
         <p className="mt-3 rounded bg-amber-100 px-3 py-2 text-xs text-amber-900">
-          FSSAI number is changing — approving clears the existing FSSAI verification. Re-verify
-          the new number after applying.
+          FSSAI number is changing — approving clears the existing FSSAI verification. Re-verify the
+          new number after applying.
         </p>
       )}
 

@@ -36,9 +36,7 @@ export async function requireChefPage(): Promise<ChefSession> {
 /**
  * Gate for chef server actions. Throws on unauthenticated.
  */
-export async function requireChefAction(): Promise<
-  ChefSession & { chefId: string }
-> {
+export async function requireChefAction(): Promise<ChefSession & { chefId: string }> {
   const supabase = await createClient();
   const {
     data: { user },

@@ -12,7 +12,8 @@
     "format:check": "prettier --check .",
     "db:reset": "node scripts/db.mjs --reset --seed",
     "db:apply": "node scripts/db.mjs",
-    "db:types": "supabase gen types typescript --linked --schema public > src/types/db.generated.ts"
+    "db:types": "supabase gen types typescript --linked --schema public > src/types/db.generated.ts",
+    "seo:validate": "node scripts/validate-jsonld.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

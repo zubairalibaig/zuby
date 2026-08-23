@@ -484,9 +484,7 @@ export function CreateListingStepper({ refData, draft }: Props) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-neutral-700">
-                {c.cuisineLabel}
-              </label>
+              <label className="block text-sm font-medium text-neutral-700">{c.cuisineLabel}</label>
               <div className="mt-2 flex flex-wrap gap-2">
                 {refData.cuisines.map((cu) => (
                   <button
@@ -571,7 +569,10 @@ export function CreateListingStepper({ refData, draft }: Props) {
             <p className="text-xs text-neutral-400">{c.photosHelp}</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {photos.map((photo, idx) => (
-                <div key={idx} className="relative aspect-square overflow-hidden rounded-xl bg-neutral-100">
+                <div
+                  key={idx}
+                  className="relative aspect-square overflow-hidden rounded-xl bg-neutral-100"
+                >
                   <Image
                     src={photo.url}
                     alt={`Photo ${idx + 1}`}
@@ -617,7 +618,13 @@ export function CreateListingStepper({ refData, draft }: Props) {
               >
                 <div>
                   <p className="text-sm font-medium text-neutral-900">
-                    {item.dietary === "veg" ? "🟢 " : item.dietary === "non_veg" ? "🔴 " : item.dietary === "egg" ? "🟡 " : ""}
+                    {item.dietary === "veg"
+                      ? "🟢 "
+                      : item.dietary === "non_veg"
+                        ? "🔴 "
+                        : item.dietary === "egg"
+                          ? "🟡 "
+                          : ""}
                     {item.name}
                   </p>
                   {item.price && (

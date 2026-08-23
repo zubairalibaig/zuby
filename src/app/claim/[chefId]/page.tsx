@@ -60,12 +60,8 @@ export default async function ClaimPage({ params }: Props) {
 
   return (
     <main className="mx-auto max-w-lg px-6 py-10">
-      <h1 className="text-2xl font-bold text-neutral-900">
-        {c.heading(chef.kitchen_name)}
-      </h1>
-      {chef.address_area && (
-        <p className="mt-1 text-sm text-neutral-500">{chef.address_area}</p>
-      )}
+      <h1 className="text-2xl font-bold text-neutral-900">{c.heading(chef.kitchen_name)}</h1>
+      {chef.address_area && <p className="mt-1 text-sm text-neutral-500">{chef.address_area}</p>}
       <p className="mt-2 text-neutral-600">{c.subheading}</p>
 
       {/* WhatsApp self-verification */}

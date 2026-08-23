@@ -90,7 +90,10 @@ export function DashboardMenuEditor({ chefId, currencyCode, menuItems }: Props) 
   }
 
   function save(id?: string) {
-    if (!form.name.trim()) { setError("Name is required"); return; }
+    if (!form.name.trim()) {
+      setError("Name is required");
+      return;
+    }
     startTransition(async () => {
       const result = await chefSaveMenuItem(chefId, currencyCode, {
         id,
@@ -104,7 +107,10 @@ export function DashboardMenuEditor({ chefId, currencyCode, menuItems }: Props) 
         nutrition: form.nutrition,
         sortOrder: form.sortOrder,
       });
-      if (!result.ok) { setError(result.error ?? "Failed"); return; }
+      if (!result.ok) {
+        setError(result.error ?? "Failed");
+        return;
+      }
       cancel();
       router.refresh();
     });
@@ -128,10 +134,7 @@ export function DashboardMenuEditor({ chefId, currencyCode, menuItems }: Props) 
     <div className="mt-6 space-y-4">
       {/* List */}
       {menuItems.map((item) => (
-        <div
-          key={item.id}
-          className="rounded-xl border border-neutral-200 bg-white p-4"
-        >
+        <div key={item.id} className="rounded-xl border border-neutral-200 bg-white p-4">
           {editing === item.id ? (
             <ItemForm
               form={form}
@@ -268,7 +271,9 @@ function ItemForm({
         <input
           type="number"
           value={form.price ?? ""}
-          onChange={(e) => setForm({ ...form, price: e.target.value ? Number(e.target.value) : null })}
+          onChange={(e) =>
+            setForm({ ...form, price: e.target.value ? Number(e.target.value) : null })
+          }
           placeholder="Price"
           min={0}
           className="rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-zuby-500 focus:outline-none"

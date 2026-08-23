@@ -47,7 +47,10 @@ export function DashboardTimingsEditor({ chefId, timings: initial }: Props) {
     setError(null);
     startTransition(async () => {
       const result = await chefSaveTimings(chefId, timings);
-      if (!result.ok) { setError(result.error ?? "Failed"); return; }
+      if (!result.ok) {
+        setError(result.error ?? "Failed");
+        return;
+      }
       router.refresh();
     });
   }
@@ -81,10 +84,7 @@ export function DashboardTimingsEditor({ chefId, timings: initial }: Props) {
             : null;
 
           return (
-            <div
-              key={day}
-              className="rounded-xl border border-neutral-200 bg-white p-4"
-            >
+            <div key={day} className="rounded-xl border border-neutral-200 bg-white p-4">
               <div className="flex items-center justify-between">
                 <p className="font-medium text-neutral-900">{DAY_LABELS[day]}</p>
                 <label className="flex items-center gap-2 text-sm text-neutral-600">
@@ -109,9 +109,7 @@ export function DashboardTimingsEditor({ chefId, timings: initial }: Props) {
                     <input
                       type="time"
                       value={openSchedule.open}
-                      onChange={(e) =>
-                        updateDay(day, { ...openSchedule, open: e.target.value })
-                      }
+                      onChange={(e) => updateDay(day, { ...openSchedule, open: e.target.value })}
                       className="mt-1 block w-full rounded border border-neutral-300 px-2 py-1.5 text-sm focus:border-zuby-500 focus:outline-none"
                     />
                   </div>
@@ -120,9 +118,7 @@ export function DashboardTimingsEditor({ chefId, timings: initial }: Props) {
                     <input
                       type="time"
                       value={openSchedule.close}
-                      onChange={(e) =>
-                        updateDay(day, { ...openSchedule, close: e.target.value })
-                      }
+                      onChange={(e) => updateDay(day, { ...openSchedule, close: e.target.value })}
                       className="mt-1 block w-full rounded border border-neutral-300 px-2 py-1.5 text-sm focus:border-zuby-500 focus:outline-none"
                     />
                   </div>

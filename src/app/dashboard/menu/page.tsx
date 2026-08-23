@@ -4,7 +4,9 @@ import { getMyChef } from "@/lib/chef/queries";
 import { copy } from "@/lib/copy/en";
 import { DashboardMenuEditor } from "@/components/dashboard/MenuEditor";
 
-export const metadata: Metadata = { title: `${copy.dashboard.nav.menu} — ${copy.dashboard.metaTitle}` };
+export const metadata: Metadata = {
+  title: `${copy.dashboard.nav.menu} — ${copy.dashboard.metaTitle}`,
+};
 
 export default async function DashboardMenuPage() {
   const { supabase, chefId } = await requireChefPage();

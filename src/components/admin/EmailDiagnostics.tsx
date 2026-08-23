@@ -41,9 +41,7 @@ export function EmailDiagnostics({ configured }: { configured: boolean }) {
           {isPending ? "Sending…" : "Send test email"}
         </button>
       </div>
-      {msg && (
-        <p className={`mt-2 text-sm ${ok ? "text-green-700" : "text-red-600"}`}>{msg}</p>
-      )}
+      {msg && <p className={`mt-2 text-sm ${ok ? "text-green-700" : "text-red-600"}`}>{msg}</p>}
     </div>
   );
 }

@@ -115,6 +115,15 @@ export const copy = {
     interimCta: "Message us on WhatsApp",
   },
 
+  share: {
+    heading: "Share this kitchen",
+    message: (kitchenName: string, url: string) =>
+      `${kitchenName} is on Zuby — home-cooked food, order straight on WhatsApp. ${url}`,
+    whatsappCta: "Share on WhatsApp",
+    otherCta: "Copy link",
+    copied: "Link copied",
+  },
+
   wa: {
     messageTemplate: (chefFirstName: string | null, kitchenName: string) =>
       `Hi${chefFirstName ? ` ${chefFirstName}` : ""}! I found ${kitchenName} on Zuby (zuby.food) and would like to order. 🍱`,
@@ -162,8 +171,7 @@ export const copy = {
     roleLabel: "Your role",
     rolePlaceholder: "Owner, chef, manager…",
     proofLabel: "How can we verify you run this kitchen?",
-    proofPlaceholder:
-      "e.g. I'm Aisha, I've been running this kitchen for 5 years. My number is…",
+    proofPlaceholder: "e.g. I'm Aisha, I've been running this kitchen for 5 years. My number is…",
     submitClaim: "Submit claim",
     claimSubmitted: "Claim submitted! We'll review it shortly and email you the result.",
     alreadyClaimed: "This listing has already been claimed.",
@@ -176,15 +184,7 @@ export const copy = {
   createListing: {
     metaTitle: "List your kitchen — Zuby",
     heading: "List your kitchen on Zuby",
-    steps: [
-      "Kitchen info",
-      "Location",
-      "Contact",
-      "Cuisines & dietary",
-      "FSSAI",
-      "Photos",
-      "Menu",
-    ],
+    steps: ["Kitchen info", "Location", "Contact", "Cuisines & dietary", "FSSAI", "Photos", "Menu"],
     submitForReview: "Submit for review",
     saveDraft: "Save draft",
     next: "Next",
@@ -224,7 +224,8 @@ export const copy = {
     fssaiHeading: "FSSAI registration",
     fssaiLabel: "14-digit FSSAI number",
     fssaiPlaceholder: "e.g. 10020064000123",
-    fssaiHelp: "Don't have one? You can submit without it, but your listing may show as incomplete.",
+    fssaiHelp:
+      "Don't have one? You can submit without it, but your listing may show as incomplete.",
     fssaiHowToGet: "Don't have one? How to get an FSSAI registration",
     fssaiSteps: [
       "Go to the FSSAI FoSCoS portal and create an account with your mobile number.",
@@ -238,7 +239,8 @@ export const copy = {
     photosHeading: "Photos of your kitchen and food",
     photosHelp: "Upload up to 8 photos. Kitchen, food and chef photos help customers trust you.",
     menuHeading: "Your menu",
-    menuHelp: "Add at least 3 items so customers know what you offer. You can always add more later.",
+    menuHelp:
+      "Add at least 3 items so customers know what you offer. You can always add more later.",
     submittedHeading: "Listing submitted!",
     submittedBody:
       "We'll review your listing and email you when it's live. This usually takes less than a day.",

@@ -6,7 +6,10 @@ import { copy } from "@/lib/copy/en";
 
 export const metadata: Metadata = { title: copy.dashboard.metaTitle };
 
-function statusLabel(status: string, latestNote: string | null): {
+function statusLabel(
+  status: string,
+  latestNote: string | null,
+): {
   label: string;
   color: string;
   note: string | null;
@@ -23,11 +26,23 @@ function statusLabel(status: string, latestNote: string | null): {
           }
         : { label: copy.dashboard.statusPending, color: "bg-blue-100 text-blue-800", note: null };
     case "draft":
-      return { label: copy.dashboard.statusDraft, color: "bg-neutral-100 text-neutral-700", note: null };
+      return {
+        label: copy.dashboard.statusDraft,
+        color: "bg-neutral-100 text-neutral-700",
+        note: null,
+      };
     case "rejected":
-      return { label: copy.dashboard.statusRejected, color: "bg-red-100 text-red-800", note: latestNote };
+      return {
+        label: copy.dashboard.statusRejected,
+        color: "bg-red-100 text-red-800",
+        note: latestNote,
+      };
     case "suspended":
-      return { label: copy.dashboard.statusSuspended, color: "bg-red-100 text-red-800", note: null };
+      return {
+        label: copy.dashboard.statusSuspended,
+        color: "bg-red-100 text-red-800",
+        note: null,
+      };
     default:
       return { label: status, color: "bg-neutral-100 text-neutral-700", note: null };
   }
@@ -84,11 +99,13 @@ export default async function DashboardOverview() {
             </Link>
           )}
           {chef.status === "draft" && (
-            <form action={async () => {
-              "use server";
-              const { submitForReview } = await import("@/lib/chef/actions");
-              await submitForReview(chefId);
-            }}>
+            <form
+              action={async () => {
+                "use server";
+                const { submitForReview } = await import("@/lib/chef/actions");
+                await submitForReview(chefId);
+              }}
+            >
               <button
                 type="submit"
                 className="rounded-lg bg-zuby-500 px-4 py-2 text-sm font-semibold text-white hover:bg-zuby-600"

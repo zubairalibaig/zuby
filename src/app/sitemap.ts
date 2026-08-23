@@ -17,6 +17,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = [
     { url: SITE_URL, changeFrequency: "daily", priority: 1 },
     { url: `${SITE_URL}/for-chefs`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${SITE_URL}/about`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${SITE_URL}/trust`, changeFrequency: "monthly", priority: 0.6 },
   ];
 
   // Same build-time resilience as generateStaticParams (see [city]/page.tsx):

@@ -22,9 +22,7 @@ export default async function CreateListingPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-10">
       <h1 className="text-2xl font-bold text-neutral-900">{copy.createListing.heading}</h1>
-      {existing && (
-        <p className="mt-1 text-sm text-neutral-500">{copy.createListing.resuming}</p>
-      )}
+      {existing && <p className="mt-1 text-sm text-neutral-500">{copy.createListing.resuming}</p>}
       <CreateListingStepper refData={refData} draft={existing} />
     </main>
   );

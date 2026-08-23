@@ -100,13 +100,7 @@ export function DashboardPhotoManager({ chefId, photos, coverUrl }: Props) {
         {photos.map((photo) => (
           <div key={photo.id} className="group relative">
             <div className="relative aspect-square overflow-hidden rounded-xl bg-neutral-100">
-              <Image
-                src={photo.url}
-                alt="Photo"
-                fill
-                sizes="200px"
-                className="object-cover"
-              />
+              <Image src={photo.url} alt="Photo" fill sizes="200px" className="object-cover" />
               {coverUrl === photo.url && (
                 <span className="absolute left-1 top-1 rounded bg-zuby-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
                   Cover

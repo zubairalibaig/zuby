@@ -54,6 +54,36 @@ export interface AdminOverview {
   }[];
 }
 
+/** Shape of public.admin_metrics() (jsonb) — the Phase 5 launch-KPI dashboard. */
+export interface AdminMetrics {
+  chefs: { approved: number; pending: number; draft: number; claimed: number };
+  weekly: {
+    week_start: string;
+    wa_clicks: number;
+    profile_views: number;
+    distinct_areas: number;
+    /** Approximate: distinct (geohash5, day). We store no visitor identifier. */
+    approx_visitors: number;
+  }[];
+  by_neighbourhood: { name: string; slug: string; wa_clicks: number; chef_count: number }[];
+  by_cuisine: { name: string; slug: string; wa_clicks: number }[];
+  by_dietary: { name: string; slug: string; wa_clicks: number }[];
+  top_chefs: {
+    kitchen_name: string;
+    slug: string;
+    city_slug: string;
+    neighbourhood_slug: string | null;
+    wa_clicks: number;
+  }[];
+  ranking_wins: {
+    query: string;
+    page_path: string;
+    position: number;
+    recorded_on: string;
+    note: string | null;
+  }[];
+}
+
 /** One row of public.search_chefs() — the geo discovery query. */
 export type SearchChefResult = {
   id: string;
@@ -177,6 +207,16 @@ type ChefPhotoRow = {
   url: string;
   kind: PhotoKind;
   sort_order: number;
+  created_at: string;
+};
+
+type RankingWinRow = {
+  id: string;
+  query: string;
+  page_path: string;
+  position: number;
+  recorded_on: string;
+  note: string | null;
   created_at: string;
 };
 
@@ -378,6 +418,8 @@ export type Database = {
         ]
       >;
       admins: Table<AdminRow>;
+      // recorded_on defaults to current_date in the migration.
+      ranking_wins: Table<RankingWinRow, Insertable<RankingWinRow, "recorded_on">>;
     };
     Views: Record<never, never>;
     Functions: {
@@ -439,6 +481,10 @@ export type Database = {
       ingest_stats: {
         Args: Record<never, never>;
         Returns: { metric: string; value: number }[];
+      };
+      admin_metrics: {
+        Args: { p_weeks?: number };
+        Returns: Json;
       };
       admin_overview: {
         Args: { p_days?: number };

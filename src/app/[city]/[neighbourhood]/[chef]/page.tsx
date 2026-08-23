@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { TagChip } from "@/components/directory/TagChip";
 import { VerifiedBadge } from "@/components/directory/VerifiedBadge";
 import { MenuItemRow } from "@/components/directory/MenuItemRow";
+import { ShareButton } from "@/components/directory/ShareButton";
 import { WhatsAppButton } from "@/components/directory/WhatsAppButton";
 import { Breadcrumbs } from "@/components/directory/Breadcrumbs";
 import { ChefDistance } from "@/components/directory/ChefDistance";
@@ -255,6 +256,51 @@ export default async function ChefPage({ params }: ChefPageProps) {
           </div>
         </section>
       )}
+
+      {/* Share — WhatsApp forwards are the native distribution channel for
+          home food, and the only way we get any attribution on them. */}
+      <section className="mt-10 border-t border-neutral-200 pt-6">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          {copy.share.heading}
+        </h2>
+        <div className="mt-3">
+          <ShareButton kitchenName={chef.kitchenName} path={path} />
+        </div>
+      </section>
+
+      {/* Cross-links keep every chef page connected to the wider grid, so no
+          profile is an orphan and equity flows both ways. */}
+      <nav className="mt-8 border-t border-neutral-200 pt-6">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          Explore nearby
+        </h2>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link
+            href={`/${chef.citySlug}/${chef.neighbourhoodSlug}`}
+            className="rounded-full border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:border-zuby-400 hover:text-zuby-600"
+          >
+            All chefs in {chef.neighbourhoodName ?? chef.neighbourhoodSlug}
+          </Link>
+          {chef.cuisines.map((cuisine) => (
+            <Link
+              key={cuisine.slug}
+              href={`/${chef.citySlug}/${chef.neighbourhoodSlug}/cuisine/${cuisine.slug}`}
+              className="rounded-full border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:border-zuby-400 hover:text-zuby-600"
+            >
+              {cuisine.name} in {chef.neighbourhoodName ?? chef.neighbourhoodSlug}
+            </Link>
+          ))}
+          {chef.dietaryTags.map((tag) => (
+            <Link
+              key={tag.slug}
+              href={`/${chef.citySlug}/diet/${tag.slug}`}
+              className="rounded-full border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:border-zuby-400 hover:text-zuby-600"
+            >
+              {tag.name} in {chef.cityName}
+            </Link>
+          ))}
+        </div>
+      </nav>
 
       <WhatsAppButton chefId={chef.id} sticky />
     </main>

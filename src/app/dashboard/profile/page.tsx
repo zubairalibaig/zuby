@@ -5,16 +5,15 @@ import { getRefData } from "@/lib/admin/queries";
 import { copy } from "@/lib/copy/en";
 import { DashboardProfileEditor } from "@/components/dashboard/ProfileEditor";
 
-export const metadata: Metadata = { title: `${copy.dashboard.nav.profile} — ${copy.dashboard.metaTitle}` };
+export const metadata: Metadata = {
+  title: `${copy.dashboard.nav.profile} — ${copy.dashboard.metaTitle}`,
+};
 
 export default async function DashboardProfilePage() {
   const { supabase, chefId } = await requireChefPage();
   if (!chefId) return null;
 
-  const [chef, refData] = await Promise.all([
-    getMyChef(supabase, chefId),
-    getRefData(supabase),
-  ]);
+  const [chef, refData] = await Promise.all([getMyChef(supabase, chefId), getRefData(supabase)]);
   if (!chef) return <p className="text-neutral-500">Listing not found.</p>;
 
   return (

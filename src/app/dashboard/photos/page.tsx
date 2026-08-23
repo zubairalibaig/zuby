@@ -4,7 +4,9 @@ import { getMyChef } from "@/lib/chef/queries";
 import { copy } from "@/lib/copy/en";
 import { DashboardPhotoManager } from "@/components/dashboard/PhotoManager";
 
-export const metadata: Metadata = { title: `${copy.dashboard.nav.photos} — ${copy.dashboard.metaTitle}` };
+export const metadata: Metadata = {
+  title: `${copy.dashboard.nav.photos} — ${copy.dashboard.metaTitle}`,
+};
 
 export default async function DashboardPhotosPage() {
   const { supabase, chefId } = await requireChefPage();

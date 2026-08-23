@@ -113,10 +113,7 @@ export async function applyPendingEdits(chefId: string, note: string): Promise<A
 export async function discardPendingEdits(chefId: string, note: string): Promise<ActionResult> {
   try {
     const { supabase, user } = await requireAdminAction();
-    const { error } = await supabase
-      .from("chefs")
-      .update({ pending_edits: null })
-      .eq("id", chefId);
+    const { error } = await supabase.from("chefs").update({ pending_edits: null }).eq("id", chefId);
     if (error) throw new Error(error.message);
 
     const { error: logErr } = await supabase.from("verification_log").insert({
@@ -189,7 +186,9 @@ export async function decideClaim(
     // to the listing afterwards, so this is the last chance to learn who to write to.
     const { data: claim } = await supabase
       .from("claims")
-      .select("chef_id, claimant_user_id, chefs(kitchen_name, slug, cities(slug), neighbourhoods(slug))")
+      .select(
+        "chef_id, claimant_user_id, chefs(kitchen_name, slug, cities(slug), neighbourhoods(slug))",
+      )
       .eq("id", claimId)
       .maybeSingle();
 
@@ -608,6 +607,37 @@ export async function sendTestEmail(): Promise<ActionResult & { detail?: string 
       return { ok: false, error: result.reason ?? "Send failed" };
     }
     return { ok: true, detail: `Sent to ${user.email}` };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed" };
+  }
+}
+
+/** Record a Search Console ranking win (KPI 4, manual until the GSC API lands). */
+export async function addRankingWin(input: {
+  query: string;
+  pagePath: string;
+  position: number;
+  note?: string | null;
+}): Promise<ActionResult> {
+  try {
+    const { supabase } = await requireAdminAction();
+    if (!input.query.trim() || !input.pagePath.trim()) {
+      return { ok: false, error: "Query and page path are both required." };
+    }
+    if (!Number.isFinite(input.position) || input.position <= 0) {
+      return { ok: false, error: "Position must be a positive number." };
+    }
+
+    const { error } = await supabase.from("ranking_wins").insert({
+      query: input.query.trim(),
+      page_path: input.pagePath.trim(),
+      position: input.position,
+      note: input.note?.trim() || null,
+    });
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/admin/metrics");
+    return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed" };
   }

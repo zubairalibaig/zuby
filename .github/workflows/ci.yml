@@ -28,6 +28,9 @@ jobs:
       - name: Format check
         run: npm run format:check
 
+      - name: Structured data + SEO invariants
+        run: npm run seo:validate
+
       - name: setup.sql is in step with the migrations
         run: node scripts/build-setup-sql.mjs --check
 

@@ -5,7 +5,9 @@ import { parseTimings } from "@/types/schemas";
 import { copy } from "@/lib/copy/en";
 import { DashboardTimingsEditor } from "@/components/dashboard/TimingsEditor";
 
-export const metadata: Metadata = { title: `${copy.dashboard.nav.timings} — ${copy.dashboard.metaTitle}` };
+export const metadata: Metadata = {
+  title: `${copy.dashboard.nav.timings} — ${copy.dashboard.metaTitle}`,
+};
 
 export default async function DashboardTimingsPage() {
   const { supabase, chefId } = await requireChefPage();

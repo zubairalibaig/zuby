@@ -62,9 +62,7 @@ async function send(to: string, subject: string, lines: string[]): Promise<SendR
   if (!apiKey) return { sent: false, reason: "RESEND_API_KEY not set" };
 
   const text = lines.join("\n\n");
-  const html = lines
-    .map((l) => `<p style="margin:0 0 16px;line-height:1.5">${l}</p>`)
-    .join("");
+  const html = lines.map((l) => `<p style="margin:0 0 16px;line-height:1.5">${l}</p>`).join("");
 
   try {
     const res = await fetch(RESEND_ENDPOINT, {

@@ -53,7 +53,10 @@ export function DashboardProfileEditor({ chef, refData }: Props) {
         whatsappE164: whatsapp || null,
         fssaiNumber: fssai || null,
       });
-      if (!result.ok) { setError(result.error ?? "Failed"); return; }
+      if (!result.ok) {
+        setError(result.error ?? "Failed");
+        return;
+      }
       setSuccess(true);
       router.refresh();
     });
@@ -172,7 +175,9 @@ export function DashboardProfileEditor({ chef, refData }: Props) {
           >
             <option value="">Select…</option>
             {Object.entries(copy.createListing.dietaryProfileOptions).map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
+              <option key={k} value={k}>
+                {v}
+              </option>
             ))}
           </select>
         </div>

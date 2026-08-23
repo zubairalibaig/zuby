@@ -1406,6 +1406,318 @@ grant execute on function public.admin_overview(integer) to authenticated, servi
 
 
 -- =====================================================================
+-- SOURCE: supabase/migrations/20260815000012_chef_dashboard.sql
+-- =====================================================================
+-- Phase 4: chef dashboard — pending-edits column, chef-facing location setter,
+-- event-stats query, and the claim verification code helpers.
+
+-- ---------------------------------------------------------------------------
+-- Pending edits: trust-relevant field changes by a chef are stored here until
+-- an admin approves them. The public page continues serving the existing row
+-- values; the admin queue shows a diff.
+-- ---------------------------------------------------------------------------
+alter table public.chefs
+  add column if not exists pending_edits jsonb;
+
+comment on column public.chefs.pending_edits is
+  'jsonb of trust-relevant field diffs pending admin approval (Phase 4). '
+  'NULL = no pending changes. Keys match column names: display_name, fssai_number, '
+  'address_text, phone_e164, whatsapp_e164, location_lat, location_lng.';
+
+-- ---------------------------------------------------------------------------
+-- Chef-facing location setter (uses the same PostGIS helper as the admin one
+-- but is callable by the owning chef — SECURITY DEFINER bypasses the direct
+-- geography column RLS awkwardness).
+-- ---------------------------------------------------------------------------
+create or replace function public.chef_set_own_location(
+  p_chef_id uuid,
+  p_lat double precision,
+  p_lng double precision
+)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions, pg_temp
+as $$
+begin
+  -- Only the owning chef or an admin may call this.
+  if not exists (
+    select 1 from public.chefs
+    where id = p_chef_id
+      and (claimed_by = auth.uid() or public.is_admin())
+  ) then
+    raise exception 'not authorised to set location for chef %', p_chef_id;
+  end if;
+
+  update public.chefs
+     set location = st_setsrid(st_makepoint(p_lng, p_lat), 4326)::geography
+   where id = p_chef_id;
+end;
+$$;
+
+revoke all on function public.chef_set_own_location(uuid, double precision, double precision) from public, anon;
+grant execute on function public.chef_set_own_location(uuid, double precision, double precision) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Event stats: per-chef wa_click + profile_view counts over last N days.
+-- Called by the dashboard "My stats" panel. SECURITY DEFINER so it can read
+-- the events table (which has no anon/authenticated SELECT policy).
+-- ---------------------------------------------------------------------------
+create or replace function public.chef_event_stats(
+  p_chef_id uuid,
+  p_days integer default 30
+)
+returns table (kind text, cnt bigint)
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select e.kind::text, count(*) as cnt
+    from public.events e
+   where e.chef_id = p_chef_id
+     and e.kind in ('wa_click', 'profile_view')
+     and e.created_at >= now() - make_interval(days => p_days)
+   group by e.kind;
+$$;
+
+-- Only the owning chef or admin should call, but since it only returns
+-- aggregate counts (not PII) and the chef_id must be supplied, granting to
+-- authenticated is safe — a curious user learns "chef X got Y clicks"
+-- which is public-level info anyway.
+revoke all on function public.chef_event_stats(uuid, integer) from public, anon;
+grant execute on function public.chef_event_stats(uuid, integer) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Admin: apply pending edits. Called from the admin approve flow to merge
+-- pending_edits back into the actual columns, then clear the pending_edits.
+-- ---------------------------------------------------------------------------
+create or replace function public.admin_apply_pending_edits(p_chef_id uuid, p_note text default null)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions, pg_temp
+as $$
+declare
+  v_edits jsonb;
+begin
+  if not public.is_admin() then
+    raise exception 'only admins may apply pending edits';
+  end if;
+
+  select pending_edits into v_edits
+    from public.chefs where id = p_chef_id;
+
+  if v_edits is null then
+    return; -- nothing to apply
+  end if;
+
+  -- Apply each field if present in the edits object.
+  update public.chefs set
+    display_name = coalesce(v_edits->>'display_name', display_name),
+    fssai_number = case when v_edits ? 'fssai_number' then v_edits->>'fssai_number' else fssai_number end,
+    address_text = case when v_edits ? 'address_text' then v_edits->>'address_text' else address_text end,
+    phone_e164 = case when v_edits ? 'phone_e164' then v_edits->>'phone_e164' else phone_e164 end,
+    whatsapp_e164 = case when v_edits ? 'whatsapp_e164' then v_edits->>'whatsapp_e164' else whatsapp_e164 end,
+    pending_edits = null
+  where id = p_chef_id;
+
+  -- If location was edited, set it via PostGIS.
+  if v_edits ? 'location_lat' and v_edits ? 'location_lng' then
+    update public.chefs
+       set location = st_setsrid(
+         st_makepoint(
+           (v_edits->>'location_lng')::double precision,
+           (v_edits->>'location_lat')::double precision
+         ), 4326)::geography
+     where id = p_chef_id;
+  end if;
+
+  -- FSSAI changed → clear previous verification
+  if v_edits ? 'fssai_number' then
+    update public.chefs
+       set fssai_verified_at = null, fssai_verified_by = null
+     where id = p_chef_id;
+  end if;
+
+  insert into public.verification_log (chef_id, admin_user_id, action, note)
+  values (p_chef_id, auth.uid(), 'edited', coalesce(p_note, 'Applied pending edits'));
+end;
+$$;
+
+revoke all on function public.admin_apply_pending_edits(uuid, text) from public, anon;
+grant execute on function public.admin_apply_pending_edits(uuid, text) to authenticated, service_role;
+
+
+-- =====================================================================
+-- SOURCE: supabase/migrations/20260815000013_metrics.sql
+-- =====================================================================
+-- Phase 5: the launch-KPI dashboard (/admin/metrics).
+--
+-- The four metrics in CONCEPT.md, plus the breakdowns that tell chef outreach
+-- where to go next. All aggregation in SQL, one round trip, admin-gated.
+--
+-- Unique-visitor counting is deliberately approximate: `events` stores a
+-- 5-character geohash and no visitor identifier, because Phase 1 chose not to
+-- track individuals. Distinct (geohash5, day) is a proxy, not a true unique —
+-- the UI must label it as such, and Vercel Analytics is the cross-check.
+
+-- Manual record of ranking wins, until GSC API automation post-V1 (Phase 5
+-- prompt §5.4). Small enough to hand-maintain, useful enough to be worth it.
+create table if not exists public.ranking_wins (
+  id uuid primary key default gen_random_uuid(),
+  query text not null,
+  page_path text not null,
+  position numeric(4,1) not null check (position > 0),
+  recorded_on date not null default current_date,
+  note text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists ranking_wins_recorded_idx
+  on public.ranking_wins (recorded_on desc);
+
+alter table public.ranking_wins enable row level security;
+
+-- Admin-only in both directions: this is internal performance data.
+drop policy if exists "admin read" on public.ranking_wins;
+create policy "admin read" on public.ranking_wins
+  for select to authenticated using (public.is_admin());
+
+drop policy if exists "admin write" on public.ranking_wins;
+create policy "admin write" on public.ranking_wins
+  for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
+-- ---------------------------------------------------------------------------
+-- admin_metrics: 8-week trend + current breakdowns.
+-- ---------------------------------------------------------------------------
+create or replace function public.admin_metrics(p_weeks integer default 8)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  result jsonb;
+  v_since timestamptz := date_trunc('week', now()) - make_interval(weeks => p_weeks - 1);
+begin
+  if not public.is_admin() then
+    raise exception 'admins only';
+  end if;
+
+  select jsonb_build_object(
+    -- KPI 1: chef supply, with the pipeline behind it.
+    'chefs', jsonb_build_object(
+      'approved', (select count(*) from public.chefs where status = 'approved'),
+      'pending',  (select count(*) from public.chefs where status = 'pending_review'),
+      'draft',    (select count(*) from public.chefs where status = 'draft'),
+      'claimed',  (select count(*) from public.chefs where status = 'approved' and claimed_by is not null)
+    ),
+
+    -- KPIs 2 and 3, weekly. Weeks with no activity are absent rather than
+    -- zero-filled; the UI fills the gaps so the trend line doesn't lie.
+    'weekly', coalesce((
+      select jsonb_agg(row_to_json(w) order by w.week_start)
+      from (
+        select
+          date_trunc('week', e.created_at)::date as week_start,
+          count(*) filter (where e.kind = 'wa_click')                as wa_clicks,
+          count(*) filter (where e.kind = 'profile_view')            as profile_views,
+          count(distinct e.geohash5) filter (where e.geohash5 is not null) as distinct_areas,
+          count(distinct (e.geohash5, date_trunc('day', e.created_at)))    as approx_visitors
+        from public.events e
+        where e.created_at >= v_since
+        group by 1
+      ) w
+    ), '[]'::jsonb),
+
+    -- Where the WhatsApp clicks are coming from. This is the supply-recruitment
+    -- signal: high intent in an area with few chefs means go recruit there.
+    'by_neighbourhood', coalesce((
+      select jsonb_agg(row_to_json(t) order by t.wa_clicks desc)
+      from (
+        select
+          coalesce(n.name, 'Unknown') as name,
+          coalesce(n.slug, '')        as slug,
+          count(*)                    as wa_clicks,
+          count(distinct ch.id)       as chef_count
+        from public.events e
+        join public.chefs ch on ch.id = e.chef_id
+        left join public.neighbourhoods n on n.id = ch.neighbourhood_id
+        where e.kind = 'wa_click' and e.created_at >= v_since
+        group by 1, 2
+        order by count(*) desc
+        limit 20
+      ) t
+    ), '[]'::jsonb),
+
+    'by_cuisine', coalesce((
+      select jsonb_agg(row_to_json(t) order by t.wa_clicks desc)
+      from (
+        select cu.name, cu.slug, count(*) as wa_clicks
+        from public.events e
+        join public.chefs ch on ch.id = e.chef_id
+        join public.chef_cuisines cc on cc.chef_id = ch.id
+        join public.cuisines cu on cu.id = cc.cuisine_id
+        where e.kind = 'wa_click' and e.created_at >= v_since
+        group by 1, 2
+        order by count(*) desc
+        limit 15
+      ) t
+    ), '[]'::jsonb),
+
+    'by_dietary', coalesce((
+      select jsonb_agg(row_to_json(t) order by t.wa_clicks desc)
+      from (
+        select dt.name, dt.slug, count(*) as wa_clicks
+        from public.events e
+        join public.chefs ch on ch.id = e.chef_id
+        join public.chef_dietary_tags cdt on cdt.chef_id = ch.id
+        join public.dietary_tags dt on dt.id = cdt.tag_id
+        where e.kind = 'wa_click' and e.created_at >= v_since
+        group by 1, 2
+        order by count(*) desc
+      ) t
+    ), '[]'::jsonb),
+
+    'top_chefs', coalesce((
+      select jsonb_agg(row_to_json(t) order by t.wa_clicks desc)
+      from (
+        select ch.kitchen_name, ch.slug, ci.slug as city_slug,
+               n.slug as neighbourhood_slug, count(*) as wa_clicks
+        from public.events e
+        join public.chefs ch on ch.id = e.chef_id
+        join public.cities ci on ci.id = ch.city_id
+        left join public.neighbourhoods n on n.id = ch.neighbourhood_id
+        where e.kind = 'wa_click' and e.created_at >= v_since
+        group by 1, 2, 3, 4
+        order by count(*) desc
+        limit 10
+      ) t
+    ), '[]'::jsonb),
+
+    -- KPI 4: manually recorded until the GSC API lands post-V1.
+    'ranking_wins', coalesce((
+      select jsonb_agg(row_to_json(r) order by r.recorded_on desc)
+      from (
+        select query, page_path, position, recorded_on, note
+        from public.ranking_wins
+        order by recorded_on desc
+        limit 50
+      ) r
+    ), '[]'::jsonb)
+  ) into result;
+
+  return result;
+end;
+$$;
+
+revoke all on function public.admin_metrics(integer) from public, anon;
+grant execute on function public.admin_metrics(integer) to authenticated, service_role;
+
+
+-- =====================================================================
 -- SOURCE: supabase/seed.sql
 -- =====================================================================
 -- Phase 0 seed data. Idempotent (fixed UUIDs + on conflict do nothing).

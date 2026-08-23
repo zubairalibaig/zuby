@@ -128,7 +128,11 @@ export default function LoginPage() {
             </button>
             <button
               type="button"
-              onClick={() => { setCodeSent(false); setOtp(""); setError(null); }}
+              onClick={() => {
+                setCodeSent(false);
+                setOtp("");
+                setError(null);
+              }}
               className="w-full text-sm text-neutral-500 hover:text-neutral-700"
             >
               Use a different email

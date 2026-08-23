@@ -1,6 +1,13 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AdminOverview, ChefStatus, Database, ListingSource, Json } from "@/types/db";
+import type {
+  AdminMetrics,
+  AdminOverview,
+  ChefStatus,
+  Database,
+  ListingSource,
+  Json,
+} from "@/types/db";
 import type { CandidateChefLike } from "@/lib/admin/types";
 
 type Client = SupabaseClient<Database>;
@@ -481,4 +488,11 @@ export async function getChefProvenance(
   if (error || !data) return null;
   const raw = data.ingest_raw as unknown as { source: string; source_url: string | null } | null;
   return raw ? { source: raw.source, sourceUrl: raw.source_url } : null;
+}
+
+/** The Phase 5 launch-KPI dashboard. One round trip; all aggregation in SQL. */
+export async function getMetrics(supabase: Client, weeks = 8): Promise<AdminMetrics> {
+  const { data, error } = await supabase.rpc("admin_metrics", { p_weeks: weeks });
+  if (error) throw new Error(`getMetrics: ${error.message}`);
+  return data as unknown as AdminMetrics;
 }

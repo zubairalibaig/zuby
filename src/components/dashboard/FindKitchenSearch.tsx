@@ -20,9 +20,7 @@ export function FindKitchenSearch() {
   function search() {
     if (query.trim().length < 2) return;
     startTransition(async () => {
-      const res = await fetch(
-        `/api/search-unclaimed?q=${encodeURIComponent(query.trim())}`,
-      );
+      const res = await fetch(`/api/search-unclaimed?q=${encodeURIComponent(query.trim())}`);
       if (!res.ok) return;
       const data: Result[] = await res.json();
       setResults(data);

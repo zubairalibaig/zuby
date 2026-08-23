@@ -119,3 +119,62 @@ export function breadcrumbJsonLd(crumbs: Crumb[]) {
 export function jsonLdScript(data: unknown) {
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }
+
+/**
+ * FAQPage — rendered alongside the visible FAQ, never instead of it. The
+ * question/answer shape is the format answer engines lift most reliably
+ * (docs/discoverability-strategy.md §8), so this earns its place even where
+ * rich-result eligibility has narrowed.
+ */
+export function faqJsonLd(items: { q: string; a: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: { "@type": "Answer", text: item.a },
+    })),
+  };
+}
+
+/**
+ * Organization — emitted once, site-wide, from the root layout. `sameAs` is the
+ * mechanism that consolidates scattered brand mentions into a single
+ * knowledge-graph entity (docs/discoverability-strategy.md §7), so profiles are
+ * listed here as they come into existence rather than left to be inferred.
+ */
+export function organizationJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": `${SITE_URL}/#organization`,
+    name: "Zuby",
+    url: SITE_URL,
+    logo: `${SITE_URL}/icon-512.png`,
+    description:
+      "Zuby is a directory of verified home chefs and tiffin services. Find home-cooked food near you and order directly on WhatsApp — no commission, no app.",
+    sameAs: ["https://www.instagram.com/zuby.food"],
+  };
+}
+
+/**
+ * WebSite node with SearchAction — declares the site's own search endpoint so
+ * engines can surface a sitelinks searchbox and so answer engines have a
+ * canonical way to reference querying us.
+ */
+export function webSiteJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": `${SITE_URL}/#website`,
+    url: SITE_URL,
+    name: "Zuby",
+    publisher: { "@id": `${SITE_URL}/#organization` },
+    potentialAction: {
+      "@type": "SearchAction",
+      target: { "@type": "EntryPoint", urlTemplate: `${SITE_URL}/search?q={search_term_string}` },
+      "query-input": "required name=search_term_string",
+    },
+  };
+}
