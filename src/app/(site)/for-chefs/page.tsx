@@ -36,6 +36,18 @@ export default function ForChefsPage() {
       <div className="mt-4 text-center">
         <h1 className="text-4xl font-bold text-sand-900">{copy.forChefs.heading}</h1>
         <p className="mt-3 text-lg text-sand-500">{copy.forChefs.subheading}</p>
+        {/* The header's "List your kitchen" button lands here, not on a sign-in
+            form — the only actual sign-in link used to be a block after the
+            hero, points, how-it-works and FAQ, so a chef had to scroll past
+            four sections before finding anything clickable. Put the same CTA
+            here too, above the fold, and leave the bottom one as a second
+            chance after they've read the detail. */}
+        <Link
+          href="/login"
+          className="mt-6 inline-flex items-center justify-center rounded-full bg-zuby-500 px-6 py-3 text-base font-semibold text-white hover:bg-zuby-600"
+        >
+          Sign in & list your kitchen
+        </Link>
       </div>
 
       <div className="mt-10 grid gap-6 text-left sm:grid-cols-3">

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdminAction } from "@/lib/admin/auth";
 import { revalidateChefPaths } from "@/lib/revalidate";
 import { deleteChefPhotoObject } from "@/lib/supabase/storage";
-import { timingsSchema, nutritionSchema } from "@/types/schemas";
+import { timingsSchema, nutritionSchema, slugSchema } from "@/types/schemas";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/types/db";
 
@@ -609,6 +609,79 @@ export async function createChef(input: {
 
     revalidatePath("/admin/chefs");
     return { ok: true, chefId: created?.id };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed" };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Catalog (cuisines, neighbourhoods) — supabase/ops.sql §8's SQL-editor
+// snippets, as an admin-gated form instead. Still admin-only: cuisines relies
+// on the "admin write" RLS policy (20260815000006_rls.sql), and neighbourhoods
+// goes through admin_add_neighbourhood because PostgREST can't write its
+// geography column directly (20260815000017_admin_catalog.sql).
+// ---------------------------------------------------------------------------
+
+export async function addCuisine(input: { slug: string; name: string }): Promise<ActionResult> {
+  try {
+    const { supabase } = await requireAdminAction();
+    const slug = input.slug.trim().toLowerCase();
+    const name = input.name.trim();
+    if (!name) return { ok: false, error: "Name is required." };
+    if (!slugSchema.safeParse(slug).success) {
+      return { ok: false, error: "Slug must be lowercase letters, numbers and hyphens." };
+    }
+
+    const { error } = await supabase.from("cuisines").insert({ slug, name });
+    if (error) {
+      if (error.code === "23505") return { ok: false, error: `"${slug}" already exists.` };
+      throw new Error(error.message);
+    }
+
+    // Every public page that lists cuisines (home rail, footer, /[city]/cuisine/…)
+    // hangs off this one server layout, so one call clears them all.
+    revalidatePath("/", "layout");
+    revalidatePath("/admin/catalog");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed" };
+  }
+}
+
+export async function addNeighbourhood(input: {
+  citySlug: string;
+  slug: string;
+  name: string;
+  lat: number;
+  lng: number;
+}): Promise<ActionResult> {
+  try {
+    const { supabase } = await requireAdminAction();
+    const slug = input.slug.trim().toLowerCase();
+    const name = input.name.trim();
+    if (!name) return { ok: false, error: "Name is required." };
+    if (!slugSchema.safeParse(slug).success) {
+      return { ok: false, error: "Slug must be lowercase letters, numbers and hyphens." };
+    }
+    if (!Number.isFinite(input.lat) || input.lat < -90 || input.lat > 90) {
+      return { ok: false, error: "Latitude must be between -90 and 90." };
+    }
+    if (!Number.isFinite(input.lng) || input.lng < -180 || input.lng > 180) {
+      return { ok: false, error: "Longitude must be between -180 and 180." };
+    }
+
+    const { error } = await supabase.rpc("admin_add_neighbourhood", {
+      p_city_slug: input.citySlug,
+      p_slug: slug,
+      p_name: name,
+      p_lat: input.lat,
+      p_lng: input.lng,
+    });
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/", "layout");
+    revalidatePath("/admin/catalog");
+    return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed" };
   }
