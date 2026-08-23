@@ -6,6 +6,7 @@ import Image from "next/image";
 import { chefAddPhoto, chefDeletePhoto, chefSetCoverPhoto } from "@/lib/chef/actions";
 import { createClient } from "@/lib/supabase/browser";
 import { copy } from "@/lib/copy/en";
+import { resizeImage, IMMUTABLE_CACHE_CONTROL } from "@/lib/media/resizeImage";
 
 interface Photo {
   id: string;
@@ -20,28 +21,11 @@ interface Props {
   coverUrl: string | null;
 }
 
-const MAX_SIZE = 1200;
-
-async function resizeImage(file: File): Promise<Blob> {
-  return new Promise((resolve) => {
-    const img = new window.Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      let { width, height } = img;
-      if (width > MAX_SIZE || height > MAX_SIZE) {
-        const ratio = Math.min(MAX_SIZE / width, MAX_SIZE / height);
-        width = Math.round(width * ratio);
-        height = Math.round(height * ratio);
-      }
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0, width, height);
-      canvas.toBlob((blob) => resolve(blob!), "image/jpeg", 0.85);
-    };
-    img.src = URL.createObjectURL(file);
-  });
-}
+// Kitchen/food/chef gallery photos: shown at up to ~280px on the public chef
+// page and up to 200px in this dashboard grid. 1000px covers both at 3x
+// pixel density with headroom, and one of these can also end up as the
+// og:image on a share card, so it isn't cropped to the smallest use case.
+const MAX_EDGE = 1000;
 
 export function DashboardPhotoManager({ chefId, photos, coverUrl }: Props) {
   const [uploading, setUploading] = useState(false);
@@ -56,15 +40,16 @@ export function DashboardPhotoManager({ chefId, photos, coverUrl }: Props) {
       setUploading(true);
       setError(null);
       try {
-        const resized = await resizeImage(file);
+        const { blob, contentType, extension } = await resizeImage(file, { maxEdge: MAX_EDGE });
         const supabase = createClient();
         // Bucket is `chef-photos`; the path inside it must NOT repeat that
         // name. Filename is a uuid, not a timestamp — two uploads in the same
         // millisecond collide, and upsert:false turns that into a failed upload.
-        const path = `${chefId}/${crypto.randomUUID()}.jpg`;
-        const { error: upErr } = await supabase.storage.from("chef-photos").upload(path, resized, {
-          contentType: "image/jpeg",
+        const path = `${chefId}/${crypto.randomUUID()}.${extension}`;
+        const { error: upErr } = await supabase.storage.from("chef-photos").upload(path, blob, {
+          contentType,
           upsert: false,
+          cacheControl: IMMUTABLE_CACHE_CONTROL,
         });
         if (upErr) throw new Error(upErr.message);
 

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { revalidateChefPaths } from "@/lib/revalidate";
+import { deleteChefPhotoObject } from "@/lib/supabase/storage";
 import {
   timingsSchema,
   nutritionSchema,
@@ -382,7 +383,18 @@ export async function chefSaveMenuItem(
     };
 
     let savedId = item.id;
+    let previousPhotoUrl: string | null = null;
     if (item.id) {
+      // Fetched before the update so a changed/removed photo can be cleaned
+      // up from Storage afterward — never before, so a failed update can't
+      // leave the still-live item pointing at a deleted blob.
+      const { data: existing } = await supabase
+        .from("menu_items")
+        .select("photo_url")
+        .eq("id", item.id)
+        .maybeSingle();
+      previousPhotoUrl = existing?.photo_url ?? null;
+
       const { error } = await supabase.from("menu_items").update(row).eq("id", item.id);
       if (error) throw new Error(error.message);
     } else {
@@ -393,6 +405,10 @@ export async function chefSaveMenuItem(
         .maybeSingle();
       if (error) throw new Error(error.message);
       savedId = created?.id;
+    }
+
+    if (previousPhotoUrl && previousPhotoUrl !== (item.photoUrl ?? null)) {
+      await deleteChefPhotoObject(supabase, previousPhotoUrl);
     }
 
     // Menu changes on an approved chef revalidate ISR immediately.
@@ -409,8 +425,16 @@ export async function chefDeleteMenuItem(chefId: string, itemId: string): Promis
     const supabase = await createClient();
     await requireOwnership(supabase, chefId);
 
+    const { data: existing } = await supabase
+      .from("menu_items")
+      .select("photo_url")
+      .eq("id", itemId)
+      .maybeSingle();
+
     const { error } = await supabase.from("menu_items").delete().eq("id", itemId);
     if (error) throw new Error(error.message);
+
+    await deleteChefPhotoObject(supabase, existing?.photo_url);
 
     await revalidateChef(supabase, chefId);
     revalidatePath("/dashboard");
@@ -492,8 +516,16 @@ export async function chefDeletePhoto(chefId: string, photoId: string): Promise<
     const supabase = await createClient();
     await requireOwnership(supabase, chefId);
 
+    const { data: existing } = await supabase
+      .from("chef_photos")
+      .select("url")
+      .eq("id", photoId)
+      .maybeSingle();
+
     const { error } = await supabase.from("chef_photos").delete().eq("id", photoId);
     if (error) throw new Error(error.message);
+
+    await deleteChefPhotoObject(supabase, existing?.url);
 
     await revalidateChef(supabase, chefId);
     revalidatePath("/dashboard");

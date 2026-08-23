@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/browser";
 import { addPhoto, deletePhoto, setCoverPhoto } from "@/lib/admin/actions";
+import { resizeImage, IMMUTABLE_CACHE_CONTROL } from "@/lib/media/resizeImage";
 
 type PhotoKind = "kitchen" | "food" | "chef";
 
@@ -13,22 +14,9 @@ interface ExistingPhoto {
   kind: PhotoKind;
 }
 
-/** Downscale an image in the browser before upload (long edge ≤ maxEdge). */
-async function resizeImage(file: File, maxEdge = 1400, quality = 0.82): Promise<Blob> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
-  const w = Math.round(bitmap.width * scale);
-  const h = Math.round(bitmap.height * scale);
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return file;
-  ctx.drawImage(bitmap, 0, 0, w, h);
-  return new Promise((resolve) => {
-    canvas.toBlob((blob) => resolve(blob ?? file), "image/webp", quality);
-  });
-}
+// Same cap as the chef-facing uploader (PhotoManager.tsx) — these feed the
+// same public displays regardless of which side uploaded them.
+const MAX_EDGE = 1000;
 
 export function PhotoUploader({
   chefId,
@@ -50,12 +38,12 @@ export function PhotoUploader({
     setError(null);
     setUploading(true);
     try {
-      const blob = await resizeImage(file);
+      const { blob, contentType, extension } = await resizeImage(file, { maxEdge: MAX_EDGE });
       const supabase = createClient();
-      const path = `${chefId}/${crypto.randomUUID()}.webp`;
+      const path = `${chefId}/${crypto.randomUUID()}.${extension}`;
       const { error: upErr } = await supabase.storage
         .from("chef-photos")
-        .upload(path, blob, { contentType: "image/webp", upsert: false });
+        .upload(path, blob, { contentType, upsert: false, cacheControl: IMMUTABLE_CACHE_CONTROL });
       if (upErr) throw new Error(upErr.message);
       const { data } = supabase.storage.from("chef-photos").getPublicUrl(path);
       const res = await addPhoto(chefId, data.publicUrl, kind);
