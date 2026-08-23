@@ -190,6 +190,7 @@ export interface ChefDetail {
   photoUrl: string | null;
   citySlug: string;
   cityName: string;
+  cityTimezone: string;
   neighbourhoodSlug: string | null;
   neighbourhoodName: string | null;
   addressArea: string | null;
@@ -224,7 +225,7 @@ export async function getChefBySlug(
   // embedded-filter syntax lining up with the hand-maintained Database type.
   const { data: city, error: cityError } = await supabase
     .from("cities")
-    .select("id, slug, name")
+    .select("id, slug, name, timezone")
     .eq("slug", citySlug)
     .maybeSingle();
   if (cityError) throw new Error(`getChefBySlug city lookup: ${cityError.message}`);
@@ -286,6 +287,7 @@ export async function getChefBySlug(
     photoUrl: chef.photo_url,
     citySlug: city.slug,
     cityName: city.name,
+    cityTimezone: city.timezone,
     neighbourhoodSlug: neighbourhood?.slug ?? null,
     neighbourhoodName: neighbourhood?.name ?? null,
     addressArea: chef.address_area,

@@ -28,18 +28,46 @@ const WEEKDAY_LABEL: Record<Weekday, string> = {
   sun: "Sun",
 };
 
-function todayKey(): Weekday {
-  // getDay(): 0=Sun..6=Sat; rotate to our mon-first order.
+const WEEKDAY_FROM_INTL_SHORT: Record<string, Weekday> = {
+  Mon: "mon",
+  Tue: "tue",
+  Wed: "wed",
+  Thu: "thu",
+  Fri: "fri",
+  Sat: "sat",
+  Sun: "sun",
+};
+
+/**
+ * "Today" for a chef's own weekly schedule, resolved in the chef's CITY
+ * timezone — never the server's. Vercel functions run in UTC, and Bangalore
+ * is UTC+5:30: for roughly 5.5 hours every night (00:00-05:30 IST) the UTC
+ * calendar day is still "yesterday", so a server-local getDay() shows the
+ * wrong day's hours to exactly the buyers checking late at night or first
+ * thing in the morning. CLAUDE.md forbids hardcoding IST — the fix isn't a
+ * hardcoded offset either, it's using the city's own timezone column via
+ * Intl, so this is correct in Singapore (UTC+8) with no code change.
+ */
+function todayKey(timezone: string): Weekday {
+  try {
+    const short = new Intl.DateTimeFormat("en-US", { timeZone: timezone, weekday: "short" }).format(
+      new Date(),
+    );
+    const key = WEEKDAY_FROM_INTL_SHORT[short];
+    if (key) return key;
+  } catch {
+    /* invalid/unknown IANA name — fall through to server-local as a last resort */
+  }
   const jsDay = new Date().getDay();
   return WEEKDAY_ORDER[(jsDay + 6) % 7]!;
 }
 
 /** "Order by 9 PM for tomorrow" / "Open until 9 PM today" / "Closed today". */
-export function describeToday(timings: Timings | null): string {
+export function describeToday(timings: Timings | null, timezone: string): string {
   if (!timings) return "Timings not listed yet";
   if (timings.vacation) return "Currently on a break";
 
-  const today = timings.days[todayKey()];
+  const today = timings.days[todayKey(timezone)];
   if (!today || "closed" in today) return "Closed today";
 
   const schedule = today as Extract<DaySchedule, { open: string }>;

@@ -208,7 +208,9 @@ export default async function ChefPage({ params }: ChefPageProps) {
           <h2 className="text-sm font-semibold uppercase tracking-wide text-sand-500">
             {copy.chef.timingsHeading}
           </h2>
-          <p className="mt-2 font-medium text-sand-900">{describeToday(chef.timings)}</p>
+          <p className="mt-2 font-medium text-sand-900">
+            {describeToday(chef.timings, chef.cityTimezone)}
+          </p>
           <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-sand-500 sm:grid-cols-4">
             {weeklySchedule.map((d) => (
               <div key={d.day} className="flex justify-between gap-2">
