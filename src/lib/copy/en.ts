@@ -5,9 +5,21 @@
 export const copy = {
   siteName: "Zuby",
   tagline: "Home-cooked food, near you.",
+  // Generic fallback — used by the root layout for any page that doesn't set
+  // its own <title>/<description> (there should be very few; every real page
+  // overrides this). Deliberately city-agnostic since it has no request
+  // context to pull a live city from.
   metaTitle: "Zuby — Home-cooked food near you",
   metaDescription:
     "Zuby is a directory of verified home chefs and tiffin services. Find home-cooked food near you — veg, halal, jain and more — and order directly on WhatsApp.",
+  // The home page's real title/description — dynamic per active city so it
+  // never hardcodes a place name into logic (CLAUDE.md), while still leading
+  // with the exact phrases we most want to rank for: home chef, home tiffin,
+  // tiffin service, home-cooked food, all anchored to a real city name.
+  homeMetaTitle: (cityName: string) =>
+    `Zuby — Verified Home Chefs & Tiffin Services in ${cityName}`,
+  homeMetaDescription: (cityName: string) =>
+    `Find verified home chefs and home tiffin services in ${cityName}. Real home-cooked food — veg, halal, jhatka, jain and egg-free — ordered directly on WhatsApp. Zero commission, no app.`,
 
   landing: {
     heading: "Home-cooked food, near you.",

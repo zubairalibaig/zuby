@@ -98,9 +98,9 @@ export const neighbourhoodBlurbs: Record<string, string> = {
 export const intentPages = {
   "tiffin-service": {
     slug: "tiffin-service",
-    title: (cityName: string) => `Tiffin services in ${cityName}`,
+    title: (cityName: string) => `Home tiffin services in ${cityName}`,
     metaTitle: (cityName: string, count: number) =>
-      `${count} verified tiffin services in ${cityName} | Zuby`,
+      `${count} verified home tiffin services in ${cityName} | Zuby`,
     metaDescription: (cityName: string, count: number) =>
       `${count} verified home tiffin services in ${cityName}. Daily meals from home kitchens — veg, non-veg, jain and halal. Compare menus and prices, then order on WhatsApp.`,
     intro: [

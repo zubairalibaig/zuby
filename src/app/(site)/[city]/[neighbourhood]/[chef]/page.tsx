@@ -75,6 +75,20 @@ const recentViews = new Map<string, number>();
 const VIEW_DEDUPE_WINDOW_MS = 60_000;
 const BOT_UA_PATTERN = /bot|crawl|spider|slurp|facebookexternalhit|preview/i;
 
+/** Descriptive alt text per photo, not a repeated kitchen name — Google
+ *  Images has no other signal to tell four photos of the same kitchen apart. */
+function photoAlt(kind: "kitchen" | "food" | "chef", kitchenName: string): string {
+  switch (kind) {
+    case "food":
+      return `A dish from ${kitchenName}, a home chef`;
+    case "chef":
+      return `The cook behind ${kitchenName}`;
+    case "kitchen":
+    default:
+      return `Inside the kitchen at ${kitchenName}, a home chef`;
+  }
+}
+
 async function logProfileView(chefId: string, cityId: string | null) {
   const h = await headers();
   const ua = h.get("user-agent") ?? "";
@@ -150,7 +164,7 @@ export default async function ChefPage({ params }: ChefPageProps) {
           {chef.photoUrl ? (
             <Image
               src={chef.photoUrl}
-              alt={chef.kitchenName}
+              alt={`${chef.kitchenName} — home chef in ${chef.neighbourhoodName ?? chef.cityName}`}
               fill
               sizes="112px"
               className="object-cover"
@@ -235,7 +249,7 @@ export default async function ChefPage({ params }: ChefPageProps) {
               >
                 <Image
                   src={photo.url}
-                  alt={chef.kitchenName}
+                  alt={photoAlt(photo.kind, chef.kitchenName)}
                   fill
                   sizes="200px"
                   className="object-cover"
