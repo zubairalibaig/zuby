@@ -7,9 +7,12 @@ import { createChefListing, saveChefDraft, submitForReview } from "@/lib/chef/ac
 import { createClient } from "@/lib/supabase/browser";
 import { copy } from "@/lib/copy/en";
 import type { RefData } from "@/lib/admin/queries";
+import type { MyChefDetail } from "@/lib/chef/queries";
 
 interface Props {
   refData: RefData;
+  /** An unfinished draft to resume, if the chef abandoned the stepper earlier. */
+  draft: MyChefDetail | null;
 }
 
 const STEPS = copy.createListing.steps;
@@ -44,45 +47,58 @@ async function resizeImage(file: File): Promise<Blob> {
   });
 }
 
-export function CreateListingStepper({ refData }: Props) {
+export function CreateListingStepper({ refData, draft }: Props) {
   const [step, setStep] = useState(0);
-  const [chefId, setChefId] = useState<string | null>(null);
+  const [chefId, setChefId] = useState<string | null>(draft?.id ?? null);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
   // Step 0: Kitchen info
-  const [kitchenName, setKitchenName] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [cityId, setCityId] = useState(refData.cities[0]?.id ?? "");
-  const [neighbourhoodId, setNeighbourhoodId] = useState<string | null>(null);
+  const [kitchenName, setKitchenName] = useState(draft?.kitchenName ?? "");
+  const [displayName, setDisplayName] = useState(draft?.displayName ?? "");
+  const [cityId, setCityId] = useState(draft?.cityId ?? refData.cities[0]?.id ?? "");
+  const [neighbourhoodId, setNeighbourhoodId] = useState<string | null>(
+    draft?.neighbourhoodId ?? null,
+  );
 
   // Step 1: Location
-  const [lat, setLat] = useState<number | null>(null);
-  const [lng, setLng] = useState<number | null>(null);
-  const [addressArea, setAddressArea] = useState("");
-  const [radius, setRadius] = useState(5);
+  const [lat, setLat] = useState<number | null>(draft?.lat ?? null);
+  const [lng, setLng] = useState<number | null>(draft?.lng ?? null);
+  const [addressArea, setAddressArea] = useState(draft?.addressArea ?? "");
+  const [radius, setRadius] = useState(draft?.serviceRadiusKm ?? 5);
 
   // Step 2: Contact
-  const [whatsapp, setWhatsapp] = useState("");
+  const [whatsapp, setWhatsapp] = useState(draft?.whatsappE164 ?? "");
 
   // Step 3: Cuisines & dietary
-  const [cuisineSlugs, setCuisineSlugs] = useState<string[]>([]);
-  const [dietaryProfile, setDietaryProfile] = useState("");
-  const [tagSlugs, setTagSlugs] = useState<string[]>([]);
+  const [cuisineSlugs, setCuisineSlugs] = useState<string[]>(draft?.cuisineSlugs ?? []);
+  const [dietaryProfile, setDietaryProfile] = useState(draft?.dietaryProfile ?? "");
+  const [tagSlugs, setTagSlugs] = useState<string[]>(draft?.dietaryTagSlugs ?? []);
 
   // Step 4: FSSAI
-  const [fssai, setFssai] = useState("");
+  const [fssai, setFssai] = useState(draft?.fssaiNumber ?? "");
 
-  // Step 5: Photos
-  const [photos, setPhotos] = useState<{ url: string; id?: string }[]>([]);
+  // Step 5: Photos — already-persisted draft photos carry their row id so the
+  // final submit doesn't insert them a second time.
+  const [photos, setPhotos] = useState<{ url: string; id?: string }[]>(
+    draft?.photos.map((p) => ({ url: p.url, id: p.id })) ?? [],
+  );
   const [uploading, setUploading] = useState(false);
 
   // Step 6: Menu
   const [menuItems, setMenuItems] = useState<
-    { name: string; price: string; unit: string; dietary: string }[]
-  >([]);
+    { name: string; price: string; unit: string; dietary: string; id?: string }[]
+  >(
+    draft?.menuItems.map((m) => ({
+      id: m.id,
+      name: m.name,
+      price: m.price === null ? "" : String(m.price),
+      unit: m.unit ?? "",
+      dietary: m.dietary ?? "",
+    })) ?? [],
+  );
   const [newItem, setNewItem] = useState({ name: "", price: "", unit: "per plate", dietary: "" });
 
   const c = copy.createListing;
@@ -189,7 +205,13 @@ export function CreateListingStepper({ refData }: Props) {
         });
         if (upErr) throw new Error(upErr.message);
         const { data: urlData } = supabase.storage.from("photos").getPublicUrl(path);
-        setPhotos((prev) => [...prev, { url: urlData.publicUrl }]);
+
+        // Persist straight away so abandoning the stepper here doesn't lose the
+        // upload — the draft is resumable only if what's on screen is in the DB.
+        const { chefAddPhoto } = await import("@/lib/chef/actions");
+        const result = await chefAddPhoto(chefId, urlData.publicUrl, "food");
+        if (!result.ok) throw new Error(result.error);
+        setPhotos((prev) => [...prev, { url: urlData.publicUrl, id: result.id }]);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Upload failed");
       } finally {
@@ -199,57 +221,78 @@ export function CreateListingStepper({ refData }: Props) {
     [chefId],
   );
 
+  function removePhoto(idx: number) {
+    const photo = photos[idx];
+    if (!photo || !chefId) return;
+    startTransition(async () => {
+      if (photo.id) {
+        const { chefDeletePhoto } = await import("@/lib/chef/actions");
+        const result = await chefDeletePhoto(chefId, photo.id);
+        if (!result.ok) {
+          setError(result.error ?? "Failed");
+          return;
+        }
+      }
+      setPhotos((prev) => prev.filter((_, i) => i !== idx));
+    });
+  }
+
   function addMenuItem() {
-    if (!newItem.name.trim()) return;
-    setMenuItems((prev) => [...prev, { ...newItem, name: newItem.name.trim() }]);
-    setNewItem({ name: "", price: "", unit: "per plate", dietary: "" });
+    const name = newItem.name.trim();
+    if (!name || !chefId) return;
+    setError(null);
+    startTransition(async () => {
+      const currCode = refData.cities.find((ct) => ct.id === cityId)?.currencyCode ?? "INR";
+      const { chefSaveMenuItem } = await import("@/lib/chef/actions");
+      const result = await chefSaveMenuItem(chefId, currCode, {
+        name,
+        description: null,
+        price: newItem.price ? Number(newItem.price) : null,
+        unit: newItem.unit || null,
+        dietary: (newItem.dietary || null) as "veg" | "non_veg" | "egg" | null,
+        isBestSeller: false,
+        isAvailable: true,
+        nutrition: null,
+        sortOrder: menuItems.length,
+      });
+      if (!result.ok) {
+        setError(result.error ?? "Failed");
+        return;
+      }
+      setMenuItems((prev) => [...prev, { ...newItem, name, id: result.id }]);
+      setNewItem({ name: "", price: "", unit: "per plate", dietary: "" });
+    });
   }
 
   function removeMenuItem(idx: number) {
-    setMenuItems((prev) => prev.filter((_, i) => i !== idx));
+    const item = menuItems[idx];
+    if (!item || !chefId) return;
+    startTransition(async () => {
+      if (item.id) {
+        const { chefDeleteMenuItem } = await import("@/lib/chef/actions");
+        const result = await chefDeleteMenuItem(chefId, item.id);
+        if (!result.ok) {
+          setError(result.error ?? "Failed");
+          return;
+        }
+      }
+      setMenuItems((prev) => prev.filter((_, i) => i !== idx));
+    });
   }
 
   async function handleSubmit() {
     if (!chefId) return;
     setError(null);
     startTransition(async () => {
-      // Save photos as draft fields via the action layer.
-      // Photos were uploaded to storage already; we save via chefAddPhoto action.
-      // For the stepper, we call saveChefDraft with the first photo as cover.
-      if (photos.length > 0) {
-        const { chefAddPhoto } = await import("@/lib/chef/actions");
-        for (const photo of photos) {
-          if (!photo.id) {
-            await chefAddPhoto(chefId, photo.url, "food");
-          }
-        }
-        // Set first photo as cover.
+      // Photos and menu items were persisted as they were added (so the draft
+      // survives being abandoned); all that's left is the cover and the flip to
+      // pending_review.
+      const first = photos[0];
+      if (first) {
         const { chefSetCoverPhoto } = await import("@/lib/chef/actions");
-        const first = photos[0];
-        if (first) await chefSetCoverPhoto(chefId, first.url);
+        await chefSetCoverPhoto(chefId, first.url);
       }
 
-      // Save menu items.
-      if (menuItems.length > 0) {
-        const currCode = refData.cities.find((ct) => ct.id === cityId)?.currencyCode ?? "INR";
-        const { chefSaveMenuItem } = await import("@/lib/chef/actions");
-        for (let i = 0; i < menuItems.length; i++) {
-          const item = menuItems[i]!;
-          await chefSaveMenuItem(chefId, currCode, {
-            name: item.name,
-            description: null,
-            price: item.price ? Number(item.price) : null,
-            unit: item.unit || null,
-            dietary: (item.dietary || null) as "veg" | "non_veg" | "egg" | null,
-            isBestSeller: false,
-            isAvailable: true,
-            nutrition: null,
-            sortOrder: i,
-          });
-        }
-      }
-
-      // Submit for review.
       const result = await submitForReview(chefId);
       if (!result.ok) {
         setError(result.error ?? "Failed to submit");
@@ -500,6 +543,24 @@ export function CreateListingStepper({ refData }: Props) {
               />
               <p className="mt-1 text-xs text-neutral-400">{c.fssaiHelp}</p>
             </div>
+            <details className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+              <summary className="cursor-pointer text-sm font-medium text-zuby-600">
+                {c.fssaiHowToGet}
+              </summary>
+              <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-neutral-600">
+                {c.fssaiSteps.map((s) => (
+                  <li key={s}>{s}</li>
+                ))}
+              </ol>
+              <a
+                href="https://foscos.fssai.gov.in/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-block text-sm font-medium text-zuby-600 hover:text-zuby-700"
+              >
+                {c.fssaiPortalLink} →
+              </a>
+            </details>
           </>
         )}
 
@@ -520,7 +581,7 @@ export function CreateListingStepper({ refData }: Props) {
                   />
                   <button
                     type="button"
-                    onClick={() => setPhotos((prev) => prev.filter((_, i) => i !== idx))}
+                    onClick={() => removePhoto(idx)}
                     className="absolute right-1 top-1 rounded-full bg-black/50 px-1.5 py-0.5 text-xs text-white"
                   >
                     ✕

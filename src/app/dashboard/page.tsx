@@ -76,6 +76,14 @@ export default async function DashboardOverview() {
             </Link>
           )}
           {chef.status === "draft" && (
+            <Link
+              href="/dashboard/create"
+              className="rounded-lg border border-zuby-500 px-4 py-2 text-sm font-semibold text-zuby-600 hover:bg-zuby-50"
+            >
+              {copy.dashboard.continueSetup}
+            </Link>
+          )}
+          {chef.status === "draft" && (
             <form action={async () => {
               "use server";
               const { submitForReview } = await import("@/lib/chef/actions");

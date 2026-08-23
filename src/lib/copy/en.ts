@@ -153,6 +153,9 @@ export const copy = {
     whatsappVerifyBody:
       "Tap below to send us a message from the kitchen's WhatsApp number. We'll match it to confirm you're the owner — usually same-day.",
     whatsappVerifyCta: "Verify with WhatsApp",
+    whatsappSent:
+      "Claim started. Send the WhatsApp message we opened — we'll match the number and confirm, usually same-day.",
+    whatsappReopen: "Open WhatsApp again",
     manualHeading: "Or verify manually",
     manualBody: "Tell us your connection to this kitchen and we'll review your claim.",
     nameLabel: "Your name",
@@ -222,7 +225,16 @@ export const copy = {
     fssaiLabel: "14-digit FSSAI number",
     fssaiPlaceholder: "e.g. 10020064000123",
     fssaiHelp: "Don't have one? You can submit without it, but your listing may show as incomplete.",
-    fssaiHowToGet: "How to get an FSSAI licence",
+    fssaiHowToGet: "Don't have one? How to get an FSSAI registration",
+    fssaiSteps: [
+      "Go to the FSSAI FoSCoS portal and create an account with your mobile number.",
+      "Choose 'Basic Registration' — it covers home kitchens turning over under ₹12 lakh a year.",
+      "Upload a photo ID, a passport photo, and proof of your kitchen address.",
+      "Pay the fee (₹100 per year) and note the 14-digit number on your certificate.",
+      "Come back here and add it — your listing gets the verified badge once we check it.",
+    ],
+    fssaiPortalLink: "Open the FSSAI FoSCoS portal",
+    resuming: "Picking up where you left off — your earlier answers are saved.",
     photosHeading: "Photos of your kitchen and food",
     photosHelp: "Upload up to 8 photos. Kitchen, food and chef photos help customers trust you.",
     menuHeading: "Your menu",
@@ -244,6 +256,7 @@ export const copy = {
     statusSuspended: "Listing suspended",
     viewPublicPage: "View your page",
     submitForReview: "Submit for review",
+    continueSetup: "Continue setup",
     nav: {
       overview: "Overview",
       menu: "Menu",

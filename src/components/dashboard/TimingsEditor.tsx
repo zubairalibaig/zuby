@@ -136,7 +136,10 @@ export function DashboardTimingsEditor({ chefId, timings: initial }: Props) {
                         if (val) {
                           updateDay(day, { ...openSchedule, order_cutoff: val });
                         } else {
-                          const { order_cutoff: _cutoff, ...rest } = openSchedule;
+                          // Clearing the cutoff drops the key entirely — the
+                          // schema treats it as optional, not nullable.
+                          const rest = { ...openSchedule };
+                          delete rest.order_cutoff;
                           updateDay(day, rest as DaySchedule);
                         }
                       }}

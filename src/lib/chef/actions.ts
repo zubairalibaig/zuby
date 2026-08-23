@@ -13,6 +13,8 @@ export interface ActionResult {
   ok: boolean;
   error?: string;
   chefId?: string;
+  /** Id of the row this action created, when it created one. */
+  id?: string;
 }
 
 /** Verify the caller owns this chef. */
@@ -279,18 +281,24 @@ export async function chefSaveMenuItem(
       sort_order: item.sortOrder,
     };
 
+    let savedId = item.id;
     if (item.id) {
       const { error } = await supabase.from("menu_items").update(row).eq("id", item.id);
       if (error) throw new Error(error.message);
     } else {
-      const { error } = await supabase.from("menu_items").insert(row);
+      const { data: created, error } = await supabase
+        .from("menu_items")
+        .insert(row)
+        .select("id")
+        .maybeSingle();
       if (error) throw new Error(error.message);
+      savedId = created?.id;
     }
 
     // Menu changes on an approved chef revalidate ISR immediately.
     await revalidateChef(supabase, chefId);
     revalidatePath("/dashboard");
-    return { ok: true };
+    return { ok: true, id: savedId };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed" };
   }
@@ -361,14 +369,16 @@ export async function chefAddPhoto(
     if ((count ?? 0) >= 8)
       return { ok: false, error: "Maximum 8 photos allowed." };
 
-    const { error } = await supabase
+    const { data: created, error } = await supabase
       .from("chef_photos")
-      .insert({ chef_id: chefId, url, kind, sort_order: count ?? 0 });
+      .insert({ chef_id: chefId, url, kind, sort_order: count ?? 0 })
+      .select("id")
+      .maybeSingle();
     if (error) throw new Error(error.message);
 
     await revalidateChef(supabase, chefId);
     revalidatePath("/dashboard");
-    return { ok: true };
+    return { ok: true, id: created?.id };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed" };
   }
@@ -542,6 +552,31 @@ export async function chefSaveProfile(
 // ---------------------------------------------------------------------------
 // Claims
 // ---------------------------------------------------------------------------
+
+/**
+ * WhatsApp self-verification claim. The chef sends a pre-filled message from the
+ * kitchen's own phone; the admin matches the sender's number against
+ * `chefs.whatsapp_e164`. We record the claim (with the code) up front so the
+ * admin has something to match the incoming message against — the wa.me link
+ * only opens after this succeeds.
+ */
+export async function submitWhatsAppClaim(
+  chefId: string,
+  code: string,
+): Promise<ActionResult> {
+  const result = await submitClaim(chefId, {
+    proofNote:
+      `WhatsApp self-verification. Code: ${code}. ` +
+      `Check that a WhatsApp message quoting this code arrived from the number on this listing.`,
+    claimantPhone: null,
+  });
+  // Re-tapping "Verify with WhatsApp" must still open the link — an existing
+  // pending claim from this user is the desired end state, not a failure.
+  if (!result.ok && result.error?.includes("already have a pending claim")) {
+    return { ok: true };
+  }
+  return result;
+}
 
 export async function submitClaim(
   chefId: string,

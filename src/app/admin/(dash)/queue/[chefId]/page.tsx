@@ -4,6 +4,7 @@ import { requireAdminPage } from "@/lib/admin/auth";
 import { getAdminChef, getChefProvenance } from "@/lib/admin/queries";
 import { ChefDetailView } from "@/components/admin/ChefDetailView";
 import { QueueActions } from "@/components/admin/QueueActions";
+import { PendingEditsPanel } from "@/components/admin/PendingEditsPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,8 @@ export default async function QueueDetailPage({ params }: { params: Promise<{ ch
         <Link href="/admin/queue" className="text-sm text-zuby-600 hover:underline">
           ← Back to queue
         </Link>
-        <div className="mt-3">
+        <div className="mt-3 space-y-4">
+          <PendingEditsPanel chef={chef} />
           <ChefDetailView chef={chef} provenance={provenance} />
         </div>
       </div>

@@ -58,8 +58,77 @@ export async function setChefStatus(
     });
     if (error) throw new Error(error.message);
     await revalidateChef(supabase, chefId);
+
+    // Tell the chef their listing went live, with the URL to share (Phase 4 §5).
+    if (status === "approved") {
+      const paths = await chefPaths(supabase, chefId);
+      const { data: chef } = await supabase
+        .from("chefs")
+        .select("kitchen_name")
+        .eq("id", chefId)
+        .maybeSingle();
+      if (paths?.neighbourhoodSlug && chef) {
+        const { emailListingApproved } = await import("@/lib/email/send");
+        await emailListingApproved(
+          chefId,
+          chef.kitchen_name,
+          `/${paths.citySlug}/${paths.neighbourhoodSlug}/${paths.chefSlug}`,
+        );
+      }
+    }
+
     revalidatePath("/admin/queue");
     revalidatePath("/admin");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed" };
+  }
+}
+
+/**
+ * Apply a chef's queued trust-field edits (Phase 4 pending-edits pattern).
+ * The RPC merges `pending_edits` into the real columns, re-runs the FSSAI
+ * verification reset if the number changed, clears the column and writes the
+ * audit row. The public page only changes at this point.
+ */
+export async function applyPendingEdits(chefId: string, note: string): Promise<ActionResult> {
+  try {
+    const { supabase } = await requireAdminAction();
+    const { error } = await supabase.rpc("admin_apply_pending_edits", {
+      p_chef_id: chefId,
+      p_note: note || null,
+    });
+    if (error) throw new Error(error.message);
+    await revalidateChef(supabase, chefId);
+    revalidatePath("/admin/queue");
+    revalidatePath(`/admin/queue/${chefId}`);
+    revalidatePath("/admin");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed" };
+  }
+}
+
+/** Reject queued trust-field edits: clear them, leave the live row untouched. */
+export async function discardPendingEdits(chefId: string, note: string): Promise<ActionResult> {
+  try {
+    const { supabase, user } = await requireAdminAction();
+    const { error } = await supabase
+      .from("chefs")
+      .update({ pending_edits: null })
+      .eq("id", chefId);
+    if (error) throw new Error(error.message);
+
+    const { error: logErr } = await supabase.from("verification_log").insert({
+      chef_id: chefId,
+      admin_user_id: user.id,
+      action: "info_requested",
+      note: note || "Pending edits rejected",
+    });
+    if (logErr) throw new Error(logErr.message);
+
+    revalidatePath("/admin/queue");
+    revalidatePath(`/admin/queue/${chefId}`);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed" };
@@ -72,6 +141,17 @@ export async function requestInfo(chefId: string, note: string): Promise<ActionR
     const { supabase } = await requireAdminAction();
     const { error } = await supabase.rpc("admin_request_info", { p_chef_id: chefId, p_note: note });
     if (error) throw new Error(error.message);
+
+    const { data: chef } = await supabase
+      .from("chefs")
+      .select("kitchen_name")
+      .eq("id", chefId)
+      .maybeSingle();
+    if (chef) {
+      const { emailChangesRequested } = await import("@/lib/email/send");
+      await emailChangesRequested(chefId, chef.kitchen_name, note);
+    }
+
     revalidatePath("/admin/queue");
     return { ok: true };
   } catch (e) {
@@ -104,12 +184,43 @@ export async function decideClaim(
 ): Promise<ActionResult> {
   try {
     const { supabase } = await requireAdminAction();
+
+    // Read the claim before deciding: on a rejection nothing links the claimant
+    // to the listing afterwards, so this is the last chance to learn who to write to.
+    const { data: claim } = await supabase
+      .from("claims")
+      .select("chef_id, claimant_user_id, chefs(kitchen_name, slug, cities(slug), neighbourhoods(slug))")
+      .eq("id", claimId)
+      .maybeSingle();
+
     const { error } = await supabase.rpc("admin_decide_claim", {
       p_claim_id: claimId,
       p_approve: approve,
       p_note: note || null,
     });
     if (error) throw new Error(error.message);
+
+    if (claim) {
+      const chef = claim.chefs as unknown as {
+        kitchen_name: string;
+        slug: string;
+        cities: { slug: string } | null;
+        neighbourhoods: { slug: string } | null;
+      } | null;
+      const path =
+        chef?.cities && chef.neighbourhoods
+          ? `/${chef.cities.slug}/${chef.neighbourhoods.slug}/${chef.slug}`
+          : null;
+      const { emailClaimDecision } = await import("@/lib/email/send");
+      await emailClaimDecision(
+        claim.claimant_user_id,
+        chef?.kitchen_name ?? "your kitchen",
+        approve,
+        path,
+      );
+      if (approve) await revalidateChef(supabase, claim.chef_id);
+    }
+
     revalidatePath("/admin/claims");
     revalidatePath("/admin");
     return { ok: true };

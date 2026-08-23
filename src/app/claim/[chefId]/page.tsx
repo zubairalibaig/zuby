@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { copy } from "@/lib/copy/en";
 import { ClaimForm } from "./ClaimForm";
+import { WhatsAppVerifyButton } from "./WhatsAppVerifyButton";
 
 interface Props {
   params: Promise<{ chefId: string }>;
@@ -31,7 +32,7 @@ export default async function ClaimPage({ params }: Props) {
 
   const { data: chef } = await supabase
     .from("chefs")
-    .select("id, kitchen_name, address_area, whatsapp_e164, claimed_by")
+    .select("id, kitchen_name, slug, address_area, whatsapp_e164, claimed_by")
     .eq("id", chefId)
     .maybeSingle();
   if (!chef) notFound();
@@ -46,12 +47,14 @@ export default async function ClaimPage({ params }: Props) {
     );
   }
 
-  // Build WhatsApp self-verify deep link: user sends a code from the kitchen's number.
-  const verifyCode = `ZUBY-${chefId.slice(0, 6).toUpperCase()}`;
+  // WhatsApp self-verify deep link: the chef sends this from the kitchen's own
+  // phone, so the sender's number is the proof. Code is derived from the chef id
+  // so it's stable across reloads and matches whatever the claim row recorded.
+  const verifyCode = `ZUBY-${chefId.replace(/\D/g, "").slice(0, 4).padStart(4, "0")}`;
   const founderWa = process.env.NEXT_PUBLIC_FOUNDER_WHATSAPP_E164?.replace(/\D/g, "") ?? "";
   const waVerifyHref = founderWa
     ? `https://wa.me/${founderWa}?text=${encodeURIComponent(
-        `I'm verifying my kitchen on Zuby. Code: ${verifyCode}`,
+        `Hi, I'm claiming ${chef.slug} on Zuby. Code: ${verifyCode}`,
       )}`
     : null;
 
@@ -73,14 +76,7 @@ export default async function ClaimPage({ params }: Props) {
           <p className="rounded-lg bg-neutral-50 px-3 py-2 text-center font-mono text-sm text-neutral-700">
             Your code: {verifyCode}
           </p>
-          <a
-            href={waVerifyHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex w-full items-center justify-center rounded-lg bg-[#25D366] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1fb958]"
-          >
-            {c.whatsappVerifyCta}
-          </a>
+          <WhatsAppVerifyButton chefId={chefId} code={verifyCode} waHref={waVerifyHref} />
         </div>
       )}
 

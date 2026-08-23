@@ -24,19 +24,26 @@ export interface QueueRow {
   hasFssai: boolean;
   hasWhatsapp: boolean;
   menuCount: number;
+  /** Approved chef whose self-serve trust-field edits are waiting on review (Phase 4). */
+  hasPendingEdits: boolean;
 }
 
-/** Pending-review chefs, oldest first, with completeness indicators. */
+/**
+ * The review queue: chefs awaiting first approval, plus already-approved chefs
+ * who have queued trust-field edits (Phase 4 pending-edits pattern). The latter
+ * stay `approved` — their public page keeps serving last-approved values — so
+ * they'd be invisible to a status-only filter.
+ */
 export async function getQueue(supabase: Client): Promise<QueueRow[]> {
   const { data, error } = await supabase
     .from("chefs")
     .select(
       `id, kitchen_name, address_area, photo_url, fssai_number, whatsapp_e164,
-       status, listing_source, created_at,
+       status, listing_source, created_at, pending_edits,
        cities!inner(slug), neighbourhoods(slug),
        menu_items(count)`,
     )
-    .eq("status", "pending_review")
+    .or("status.eq.pending_review,pending_edits.not.is.null")
     .order("created_at", { ascending: true });
   if (error) throw new Error(`getQueue: ${error.message}`);
 
@@ -57,6 +64,7 @@ export async function getQueue(supabase: Client): Promise<QueueRow[]> {
       hasFssai: Boolean(c.fssai_number),
       hasWhatsapp: Boolean(c.whatsapp_e164),
       menuCount: menu?.[0]?.count ?? 0,
+      hasPendingEdits: c.pending_edits !== null,
     };
   });
 }
@@ -82,6 +90,8 @@ export interface AdminChefDetail {
   isVerified: boolean;
   dietaryProfile: "veg_only" | "non_veg" | "mixed" | null;
   timings: Json | null;
+  /** Queued trust-field edits awaiting admin approval (Phase 4). */
+  pendingEdits: Json | null;
   cityId: string;
   citySlug: string;
   cityName: string;
@@ -126,7 +136,7 @@ export async function getAdminChef(
       `id, slug, display_name, kitchen_name, bio, photo_url, phone_e164, whatsapp_e164,
        instagram_handle, address_text, address_area, service_radius_km, status, listing_source,
        claimed_by, fssai_number, fssai_verified_at, is_verified, dietary_profile, timings,
-       city_id, neighbourhood_id,
+       pending_edits, city_id, neighbourhood_id,
        cities!inner(slug, name, countries(currency_code)),
        neighbourhoods(slug)`,
     )
@@ -188,6 +198,7 @@ export async function getAdminChef(
     isVerified: chef.is_verified,
     dietaryProfile: chef.dietary_profile,
     timings: chef.timings,
+    pendingEdits: chef.pending_edits,
     cityId: chef.city_id,
     citySlug: city.slug,
     cityName: city.name,

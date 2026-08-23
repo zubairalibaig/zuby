@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { chefSaveMenuItem, chefDeleteMenuItem } from "@/lib/chef/actions";
 import { copy } from "@/lib/copy/en";
+import type { Nutrition } from "@/types/schemas";
 import type { Json } from "@/types/db";
 
 interface MenuItem {
@@ -35,9 +36,18 @@ const EMPTY_ITEM = {
   dietary: null as "veg" | "non_veg" | "egg" | null,
   isBestSeller: false,
   isAvailable: true,
-  nutrition: null as unknown,
+  nutrition: {} as Nutrition,
   sortOrder: 0,
 };
+
+/** Nutrition fields shown in the expander, in the order chefs think about them. */
+const NUTRITION_FIELDS: { key: keyof Nutrition; label: string; suffix: string }[] = [
+  { key: "calories_kcal", label: "Calories", suffix: "kcal" },
+  { key: "protein_g", label: "Protein", suffix: "g" },
+  { key: "carbs_g", label: "Carbs", suffix: "g" },
+  { key: "fat_g", label: "Fat", suffix: "g" },
+  { key: "serving_g", label: "Serving size", suffix: "g" },
+];
 
 export function DashboardMenuEditor({ chefId, currencyCode, menuItems }: Props) {
   const [editing, setEditing] = useState<string | null>(null);
@@ -60,7 +70,7 @@ export function DashboardMenuEditor({ chefId, currencyCode, menuItems }: Props) 
       dietary: item.dietary,
       isBestSeller: item.isBestSeller,
       isAvailable: item.isAvailable,
-      nutrition: item.nutrition,
+      nutrition: (item.nutrition ?? {}) as Nutrition,
       sortOrder: item.sortOrder,
     });
     setError(null);
@@ -229,6 +239,15 @@ function ItemForm({
   onCancel: () => void;
 }) {
   const canToggleBestSeller = form.isBestSeller || bestSellerCount < 3;
+  const nutrition = form.nutrition ?? {};
+  const [showNutrition, setShowNutrition] = useState(Object.keys(nutrition).length > 0);
+
+  function setNut(key: keyof Nutrition, val: string) {
+    setForm({
+      ...form,
+      nutrition: { ...nutrition, [key]: val === "" ? undefined : Number(val) },
+    });
+  }
 
   return (
     <div className="space-y-3">
@@ -301,6 +320,38 @@ function ItemForm({
           Best seller{!canToggleBestSeller && " (max 3)"}
         </label>
       </div>
+      {/* Nutrition — optional, tucked behind an expander so the common path stays short. */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowNutrition((v) => !v)}
+          className="text-sm font-medium text-zuby-600 hover:text-zuby-700"
+        >
+          {showNutrition ? "Hide" : "Add"} nutrition info
+        </button>
+        {showNutrition && (
+          <div className="mt-2 grid grid-cols-2 gap-2 rounded-lg bg-neutral-50 p-3 sm:grid-cols-3">
+            {NUTRITION_FIELDS.map((f) => (
+              <div key={f.key}>
+                <label className="block text-xs text-neutral-500">
+                  {f.label} ({f.suffix})
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={nutrition[f.key] ?? ""}
+                  onChange={(e) => setNut(f.key, e.target.value)}
+                  className="mt-1 block w-full rounded border border-neutral-300 px-2 py-1.5 text-sm focus:border-zuby-500 focus:outline-none"
+                />
+              </div>
+            ))}
+            <p className="col-span-full text-xs text-neutral-400">
+              Per serving. Leave blank what you don&apos;t know — partial info still shows.
+            </p>
+          </div>
+        )}
+      </div>
+
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex gap-2">
         <button
