@@ -17,12 +17,14 @@ Each `prompts/phase-N-*.md` file is written as a standalone instruction set for 
 | 3 | [Admin panel](prompts/phase-3-admin.md) | Verification queue, approve/reject with audit log, listing editor, ingest-candidate review, claims inbox | 1, 2 |
 | 4 | [Chef auth, claim & self-serve](prompts/phase-4-chef-dashboard.md) | Chef login (email OTP/Google), claim-your-listing flow (WhatsApp self-verification), create new listing, manage menu/photos/timings/prices/nutrition/tags/best-sellers | 3 |
 | 5 | [SEO & growth hardening](prompts/phase-5-seo-growth.md) | Programmatic landing pages at scale, metadata polish, PWA install, performance budget, analytics dashboards on `events` | 1–4 live |
+| 5b | Home discovery & promoted placement | Swiggy-style home page: location picker, omni-search over kitchens/dishes/cuisines/tags/areas, category tiles, Featured (paid) and Trending rails. First revenue line — see [`docs/promoted-listings.md`](docs/promoted-listings.md) | 5 |
 | 6 | [Singapore enablement](prompts/phase-6-singapore.md) | Activate SG: cities/areas seed, SGD, SFA/MUIS surfacing, halal-first positioning — config + data, near-zero code | 5 + founder go |
 
 ## Sequencing notes
 
 - **Phases 1 and 2 can run in parallel** (different surfaces: web app vs. scripts). Everything else is strictly sequential.
 - **Launchable milestone = end of Phase 3.** With seeded, admin-approved listings and the public directory live, Bangalore launch can happen while Phase 4 is being built. Phase 4 turns launch traffic into claimed listings.
+- **Phase 5b was founder-directed, outside the original phase plan.** It adds the first revenue line (advertising). The guardrails that keep paid placement compatible with a trust-first directory are enforced in code, not convention — see `docs/promoted-listings.md`.
 - **Phase 6 does not start** until Bangalore metrics (see `CONCEPT.md` → "Success in the first 60 days") justify it and the founder says go.
 
 ## Parked (post-V1) — log ideas here, do not build them

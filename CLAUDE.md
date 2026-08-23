@@ -10,6 +10,7 @@ Read these three documents before doing anything, in this order:
 ## Hard rules
 
 - **No V1 scope creep.** No payments, no delivery, no cart/checkout/order states, no in-app chat, no ratings/reviews, no subscriptions, no native apps, no multi-language UI. Ordering happens via pre-filled WhatsApp links. If a task seems to need one of these, stop and flag it instead of building it.
+- **Promoted placement is in scope, and fenced.** Paid placement exists in exactly one labelled rail on the home page (`docs/promoted-listings.md`). It must always be labelled, must never bypass verification, must never override a dietary filter, must never be self-serve for chefs, and must stay time-boxed. Do not widen it to search results or landing pages without founder sign-off — that is the change most likely to damage the trust proposition.
 - **Multi-country from day zero.** Countries and cities are first-class DB entities. Prices always carry a currency code. Regulatory fields cover India (FSSAI) and Singapore (SFA/MUIS). Never hardcode "Bangalore", "India", "₹", or IST into logic — they are data/config.
 - **Geo is real.** Radius search uses PostGIS geo-indexed queries against each chef's location AND declared service radius. No fake "sort by city" geo.
 - **Trust is non-negotiable.** Nothing appears publicly without admin approval. FSSAI number, verification badge, and dietary tags (veg / non-veg / halal / jhatka / jain / egg-free) are visible and filterable.

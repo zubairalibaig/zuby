@@ -40,7 +40,7 @@ Expansion beyond these two, to other Indian cities or other countries, happens a
 
 ## What makes Zuby different from what exists
 
-**Directory-first, not marketplace-first.** Zero commission at launch. Chefs keep 100% of their revenue. This makes chef onboarding radically easier — we're offering visibility, not asking for a cut. Competitors have to convince chefs to give up 25% before they've earned any trust. Zuby earns the relationship first.
+**Directory-first, not marketplace-first.** Zero commission — chefs keep 100% of every rupee a customer pays them, and that does not change. (Zuby's first revenue line is *advertising*, not commission: a chef can pay a flat fee to appear in the home page's Featured rail. Paying for visibility is optional and always disclosed; nobody ever pays per order. See `docs/promoted-listings.md`.) This makes chef onboarding radically easier — we're offering visibility, not asking for a cut. Competitors have to convince chefs to give up 25% before they've earned any trust. Zuby earns the relationship first.
 
 **Real geo-search from day one.** Not "show all chefs in Bangalore, sorted by rating." Actual radius-based filtering using proper geo-indexed queries (PostGIS), matched against each chef's declared service radius. If the chef says "I serve within 5 km of my kitchen," they only appear to buyers within that 5 km. This is basic infrastructure that competitors underinvest in and it's the single most important discovery feature.
 
@@ -68,6 +68,10 @@ Not in V1:
 - Native mobile apps — responsive web only, installable as a PWA.
 - Multi-language UI.
 - Any Singapore-facing feature — the schema supports it but functionally we're India-only.
+
+**Now in, added after the original V1 scope was set:** promoted (paid) placement in a single labelled
+rail on the home page. It is advertising, not commission, and it is bounded by the rules in
+`docs/promoted-listings.md`. Nothing else on that list has moved.
 
 When someone asks "should we also do X?", the answer is: not in V1. Log it, park it, come back to it after launch.
 
@@ -107,6 +111,10 @@ If any of these are missing at day 60, we fix the funnel before shipping more fe
 ## The longer arc
 
 Directory today. Marketplace tomorrow. But only if the directory earns it.
+
+**The first revenue line is advertising, not commission.** Once there is real buyer traffic, a chef can pay a flat fee for a labelled slot in the Featured rail on the home page. This is deliberately the mildest possible way to make money from a trust product: it takes nothing from a chef's earnings, it is optional, and it is visible to buyers. The guardrails that keep it compatible with the trust proposition — always labelled, never bypasses verification, never overrides a dietary filter, never self-serve for chefs, always time-boxed — are documented and enforced in code in `docs/promoted-listings.md`. Widening paid placement beyond that one rail is the single decision most likely to damage Zuby, and it should be taken deliberately rather than arrived at by increments.
+
+Selling placement before there is traffic sells something that does not exist. The threshold is roughly the day-60 target below: about 1,000 weekly visitors. Below that, a featured slot is not worth charging for.
 
 Once Bangalore has 100+ chefs and consistent buyer traffic, the next natural layer is optional in-app ordering with integrated payments. Chefs who want it opt in; chefs who prefer WhatsApp stay on WhatsApp. Zuby's take rate on in-app orders funds the growth. Delivery comes next, either via aggregators (Swiggy Genie, Porter) or a Zuby-owned rider layer in dense neighbourhoods where volume justifies it. Subscriptions and meal plans layer on top of that. Corporate catering — big-ticket, high-margin — is a separate go-to-market motion once the consumer product is stable.
 
