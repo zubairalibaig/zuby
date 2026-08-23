@@ -1,17 +1,32 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/browser";
 import { copy } from "@/lib/copy/en";
 
-export default function LoginPage() {
+/**
+ * Only same-site paths are accepted as a post-login destination. `next` comes
+ * from the query string, so anything that isn't a single-slash-prefixed path is
+ * discarded rather than trusted.
+ */
+function safeNext(raw: string | null): string {
+  if (!raw) return "/dashboard";
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/dashboard";
+  return raw;
+}
+
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [codeSent, setCodeSent] = useState(false);
   const [otp, setOtp] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // The claim flow sends the buyer here with ?next=/claim/<id>. Without honouring
+  // it they land on the dashboard and the listing they wanted to claim is lost.
+  const next = safeNext(searchParams.get("next"));
   const c = copy.login;
 
   async function sendOtp() {
@@ -43,7 +58,7 @@ export default function LoginPage() {
         type: "email",
       });
       if (error) throw error;
-      router.push("/dashboard");
+      router.push(next);
       router.refresh();
     } catch {
       setError(c.codeError);
@@ -58,7 +73,9 @@ export default function LoginPage() {
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: `${window.location.origin}/auth/callback?next=/dashboard` },
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        },
       });
       if (error) throw error;
     } catch (e) {
@@ -161,5 +178,17 @@ export default function LoginPage() {
 
       {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
     </main>
+  );
+}
+
+/**
+ * useSearchParams needs a Suspense boundary, otherwise this page is forced
+ * fully dynamic and Next fails the build.
+ */
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

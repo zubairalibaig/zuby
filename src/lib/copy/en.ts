@@ -156,7 +156,10 @@ export const copy = {
     heroSub:
       "Verified home chefs and tiffin services. Find them by area, cuisine or how you eat — then order straight on WhatsApp.",
     heroLocationPrompt: "Tell us where you are and we'll show who's cooking nearby.",
-    liveBadge: (n: number) => `${n} verified ${n === 1 ? "kitchen" : "kitchens"} in Bangalore`,
+    // City comes from data — CLAUDE.md forbids hardcoding it, and a second
+    // market would otherwise show the wrong name beside a live count.
+    liveBadge: (n: number, city: string) =>
+      `${n} verified ${n === 1 ? "kitchen" : "kitchens"} in ${city}`,
 
     // Trust band
     trustPoints: [

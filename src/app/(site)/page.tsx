@@ -111,7 +111,12 @@ export default async function Home() {
 
   return (
     <main>
-      <Hero citySlug={citySlug} neighbourhoods={neighbourhoods} chefCount={chefCount} />
+      <Hero
+        citySlug={citySlug}
+        neighbourhoods={neighbourhoods}
+        chefCount={chefCount}
+        cityName={primaryCity?.name ?? "your city"}
+      />
 
       <div className="mx-auto max-w-6xl px-5">
         {!hasDiscovery && <DiscoveryEmpty />}

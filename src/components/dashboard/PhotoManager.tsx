@@ -58,14 +58,17 @@ export function DashboardPhotoManager({ chefId, photos, coverUrl }: Props) {
       try {
         const resized = await resizeImage(file);
         const supabase = createClient();
-        const path = `chef-photos/${chefId}/${Date.now()}.jpg`;
-        const { error: upErr } = await supabase.storage.from("photos").upload(path, resized, {
+        // Bucket is `chef-photos`; the path inside it must NOT repeat that
+        // name. Filename is a uuid, not a timestamp — two uploads in the same
+        // millisecond collide, and upsert:false turns that into a failed upload.
+        const path = `${chefId}/${crypto.randomUUID()}.jpg`;
+        const { error: upErr } = await supabase.storage.from("chef-photos").upload(path, resized, {
           contentType: "image/jpeg",
           upsert: false,
         });
         if (upErr) throw new Error(upErr.message);
 
-        const { data: urlData } = supabase.storage.from("photos").getPublicUrl(path);
+        const { data: urlData } = supabase.storage.from("chef-photos").getPublicUrl(path);
         const result = await chefAddPhoto(chefId, urlData.publicUrl, "food");
         if (!result.ok) throw new Error(result.error);
         router.refresh();

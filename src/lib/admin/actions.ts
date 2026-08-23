@@ -18,7 +18,9 @@ export interface ActionResult {
 async function chefPaths(supabase: Client, chefId: string) {
   const { data } = await supabase
     .from("chefs")
-    .select("slug, cities!inner(slug), neighbourhoods(slug), chef_cuisines(cuisines(slug))")
+    .select(
+      "slug, cities!inner(slug), neighbourhoods(slug), chef_cuisines(cuisines(slug)), chef_dietary_tags(dietary_tags(slug))",
+    )
     .eq("id", chefId)
     .maybeSingle();
   if (!data) return null;
@@ -27,11 +29,17 @@ async function chefPaths(supabase: Client, chefId: string) {
   const cuisineRows = (data.chef_cuisines ?? []) as unknown as {
     cuisines: { slug: string } | null;
   }[];
+  const tagRows = (data.chef_dietary_tags ?? []) as unknown as {
+    dietary_tags: { slug: string } | null;
+  }[];
   return {
     citySlug: city.slug,
     neighbourhoodSlug: hood?.slug ?? null,
     chefSlug: data.slug,
     cuisineSlugs: cuisineRows.map((r) => r.cuisines?.slug).filter((s): s is string => Boolean(s)),
+    dietaryTagSlugs: tagRows
+      .map((r) => r.dietary_tags?.slug)
+      .filter((s): s is string => Boolean(s)),
   };
 }
 

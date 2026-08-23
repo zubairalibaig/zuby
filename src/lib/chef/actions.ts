@@ -33,7 +33,9 @@ async function requireOwnership(supabase: Client, chefId: string): Promise<{ use
 async function chefPaths(supabase: Client, chefId: string) {
   const { data } = await supabase
     .from("chefs")
-    .select("slug, cities!inner(slug), neighbourhoods(slug), chef_cuisines(cuisines(slug))")
+    .select(
+      "slug, cities!inner(slug), neighbourhoods(slug), chef_cuisines(cuisines(slug)), chef_dietary_tags(dietary_tags(slug))",
+    )
     .eq("id", chefId)
     .maybeSingle();
   if (!data) return null;
@@ -42,11 +44,17 @@ async function chefPaths(supabase: Client, chefId: string) {
   const cuisineRows = (data.chef_cuisines ?? []) as unknown as {
     cuisines: { slug: string } | null;
   }[];
+  const tagRows = (data.chef_dietary_tags ?? []) as unknown as {
+    dietary_tags: { slug: string } | null;
+  }[];
   return {
     citySlug: city.slug,
     neighbourhoodSlug: hood?.slug ?? null,
     chefSlug: data.slug,
     cuisineSlugs: cuisineRows.map((r) => r.cuisines?.slug).filter((s): s is string => Boolean(s)),
+    dietaryTagSlugs: tagRows
+      .map((r) => r.dietary_tags?.slug)
+      .filter((s): s is string => Boolean(s)),
   };
 }
 
@@ -365,6 +373,28 @@ export async function chefSaveTimings(
 // Photos
 // ---------------------------------------------------------------------------
 
+/**
+ * The photo URL is chosen by the browser, so it has to be checked here: without
+ * this a chef could point their listing at any URL on the internet. next/image
+ * would refuse to render it (remotePatterns), but the value also lands in
+ * JSON-LD and in the OG metadata, where nothing else validates it.
+ */
+function isOwnStorageUrl(url: string, chefId: string): boolean {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!base) return false;
+  try {
+    const parsed = new URL(url);
+    const expectedHost = new URL(base).host;
+    return (
+      parsed.protocol === "https:" &&
+      parsed.host === expectedHost &&
+      parsed.pathname.startsWith(`/storage/v1/object/public/chef-photos/${chefId}/`)
+    );
+  } catch {
+    return false;
+  }
+}
+
 export async function chefAddPhoto(
   chefId: string,
   url: string,
@@ -373,6 +403,10 @@ export async function chefAddPhoto(
   try {
     const supabase = await createClient();
     await requireOwnership(supabase, chefId);
+
+    if (!isOwnStorageUrl(url, chefId)) {
+      return { ok: false, error: "That photo URL isn't a Zuby upload." };
+    }
 
     const { count } = await supabase
       .from("chef_photos")
@@ -416,6 +450,10 @@ export async function chefSetCoverPhoto(chefId: string, url: string): Promise<Ac
     const supabase = await createClient();
     await requireOwnership(supabase, chefId);
 
+    if (!isOwnStorageUrl(url, chefId)) {
+      return { ok: false, error: "That photo URL isn't a Zuby upload." };
+    }
+
     const { error } = await supabase.from("chefs").update({ photo_url: url }).eq("id", chefId);
     if (error) throw new Error(error.message);
 
@@ -430,17 +468,6 @@ export async function chefSetCoverPhoto(chefId: string, url: string): Promise<Ac
 // ---------------------------------------------------------------------------
 // Profile (trust-relevant edits → pending_edits; non-trust → immediate)
 // ---------------------------------------------------------------------------
-
-/** Trust-relevant fields that flip an approved chef to pending_review. */
-const TRUST_FIELDS = new Set([
-  "displayName",
-  "fssaiNumber",
-  "addressText",
-  "phoneE164",
-  "whatsappE164",
-  "lat",
-  "lng",
-]);
 
 export async function chefSaveProfile(
   chefId: string,
@@ -476,37 +503,66 @@ export async function chefSaveProfile(
       if (!parsed.success) return { ok: false, error: "FSSAI number must be exactly 14 digits" };
     }
 
-    // Check chef's current status.
+    // Read the live values, not just the status: a trust field only counts as
+    // "changed" if it actually differs. The profile form posts every field on
+    // every save, so without this an approved chef editing only their bio would
+    // queue a pointless admin review each time.
     const { data: current } = await supabase
       .from("chefs")
-      .select("status")
+      .select(
+        "status, display_name, fssai_number, address_text, phone_e164, whatsapp_e164, pending_edits",
+      )
       .eq("id", chefId)
       .maybeSingle();
     const isApproved = current?.status === "approved";
 
-    // Separate trust-relevant changes from safe ones.
-    const hasTrustChanges = Object.keys(input).some((k) => TRUST_FIELDS.has(k));
+    if (isApproved && current) {
+      // Merge onto whatever is already queued rather than replacing it — two
+      // separate edits (name today, phone tomorrow) must both survive until an
+      // admin decides.
+      const existing =
+        current.pending_edits && typeof current.pending_edits === "object"
+          ? { ...(current.pending_edits as Record<string, string | null>) }
+          : {};
 
-    if (isApproved && hasTrustChanges) {
-      // Store trust-field changes as pending_edits; don't write them to the main row.
-      const pendingEdits: Record<string, string | null> = {};
-      if (input.displayName !== undefined) pendingEdits.display_name = input.displayName ?? null;
-      if (input.fssaiNumber !== undefined) pendingEdits.fssai_number = input.fssaiNumber ?? null;
-      if (input.addressText !== undefined) pendingEdits.address_text = input.addressText ?? null;
-      if (input.phoneE164 !== undefined) pendingEdits.phone_e164 = input.phoneE164 ?? null;
-      if (input.whatsappE164 !== undefined) pendingEdits.whatsapp_e164 = input.whatsappE164 ?? null;
-      if (input.lat != null) pendingEdits.location_lat = String(input.lat);
-      if (input.lng != null) pendingEdits.location_lng = String(input.lng);
+      const queueIfChanged = (
+        key: string,
+        next: string | null | undefined,
+        live: string | null,
+      ) => {
+        if (next === undefined) return;
+        const normalised = next === "" ? null : next;
+        if (normalised === live) {
+          // Reverted to the live value — drop any stale queued edit for it.
+          delete existing[key];
+          return;
+        }
+        existing[key] = normalised;
+      };
 
-      // Set pending_edits and flip to pending_review.
-      const { error } = await supabase
-        .from("chefs")
-        .update({ pending_edits: pendingEdits as unknown as Json })
-        .eq("id", chefId);
-      if (error) throw new Error(error.message);
-      // The chefs_guard trigger will flip status → pending_review if we touch trust fields.
-      // Since we're NOT touching them directly, we keep the chef approved — the pending_edits
-      // sit alongside. The admin_apply_pending_edits function merges them.
+      queueIfChanged("display_name", input.displayName, current.display_name);
+      queueIfChanged("fssai_number", input.fssaiNumber, current.fssai_number);
+      queueIfChanged("address_text", input.addressText, current.address_text);
+      queueIfChanged("phone_e164", input.phoneE164, current.phone_e164);
+      queueIfChanged("whatsapp_e164", input.whatsappE164, current.whatsapp_e164);
+      if (input.lat != null) existing.location_lat = String(input.lat);
+      if (input.lng != null) existing.location_lng = String(input.lng);
+
+      const nextPending = Object.keys(existing).length > 0 ? existing : null;
+      const currentlyQueued = current.pending_edits ?? null;
+
+      // Only write when the queue actually changes, so an unrelated save doesn't
+      // touch the row and re-surface the chef in the admin queue.
+      if (JSON.stringify(nextPending) !== JSON.stringify(currentlyQueued)) {
+        const { error } = await supabase
+          .from("chefs")
+          .update({ pending_edits: nextPending as unknown as Json })
+          .eq("id", chefId);
+        if (error) throw new Error(error.message);
+      }
+      // The chef stays `approved` throughout: the public page keeps serving the
+      // last-approved values, and admin_apply_pending_edits is the only thing
+      // that moves a queued value into the live row.
     }
 
     // Apply non-trust fields directly (bio, addressArea, instagram, radius, dietary, cuisines, tags).

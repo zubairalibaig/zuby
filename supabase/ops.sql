@@ -23,6 +23,11 @@ on conflict (user_id) do nothing;
 
 -- ---------------------------------------------------------------------
 -- 2. CREATE THE PHOTO STORAGE BUCKET
+--    RE-RUN THIS BLOCK: the write policies were tightened in the code review
+--    (Nov 2026). The old "authenticated upload chef photos" policy let any
+--    signed-in user write anywhere in the bucket; the replacements below scope
+--    writes, updates and deletes to the chef's own folder. Running this block
+--    again is safe — every statement is drop-if-exists / on-conflict-do-nothing.
 -- ---------------------------------------------------------------------
 -- Needed before chef/menu photos can be uploaded (Phase 3 and 4).
 -- Public read so images can be served from the CDN; writes are restricted
@@ -39,11 +44,49 @@ create policy "public read chef photos" on storage.objects
   for select to anon, authenticated
   using (bucket_id = 'chef-photos');
 
--- Signed-in users may upload; admins may change or remove anything.
+-- Writes are scoped to the chef's OWN folder. The upload path is
+-- "<chef_id>/<uuid>.jpg", and the first path segment is checked against the
+-- caller's listing — otherwise any signed-in user could write into (or over)
+-- another kitchen's folder, since the client chooses the path.
 drop policy if exists "authenticated upload chef photos" on storage.objects;
-create policy "authenticated upload chef photos" on storage.objects
+drop policy if exists "chef upload own photos" on storage.objects;
+create policy "chef upload own photos" on storage.objects
   for insert to authenticated
-  with check (bucket_id = 'chef-photos');
+  with check (
+    bucket_id = 'chef-photos'
+    and (
+      public.is_admin()
+      or exists (
+        select 1 from public.chefs c
+        where c.claimed_by = auth.uid()
+          and c.id::text = (storage.foldername(name))[1]
+      )
+    )
+  );
+
+-- Owners may also replace and remove their own objects. Without a delete
+-- policy, chefDeletePhoto() removed the database row and orphaned the file.
+drop policy if exists "chef modify own photos" on storage.objects;
+create policy "chef modify own photos" on storage.objects
+  for update to authenticated
+  using (
+    bucket_id = 'chef-photos'
+    and exists (
+      select 1 from public.chefs c
+      where c.claimed_by = auth.uid() and c.id::text = (storage.foldername(name))[1]
+    )
+  );
+
+drop policy if exists "chef delete own photos" on storage.objects;
+create policy "chef delete own photos" on storage.objects
+  for delete to authenticated
+  using (
+    bucket_id = 'chef-photos'
+    and exists (
+      select 1 from public.chefs c
+      where c.claimed_by = auth.uid() and c.id::text = (storage.foldername(name))[1]
+    )
+  );
 
 drop policy if exists "admin manage chef photos" on storage.objects;
 create policy "admin manage chef photos" on storage.objects

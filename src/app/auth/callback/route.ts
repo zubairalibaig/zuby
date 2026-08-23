@@ -8,7 +8,12 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  // `next` is attacker-controllable. Concatenating it to origin cannot escape
+  // the host, but a value like "https://evil.com" produces a malformed URL and
+  // a 500, so only accept a single-slash-prefixed same-site path.
+  const rawNext = searchParams.get("next");
+  const next =
+    rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/dashboard";
 
   if (code) {
     const supabase = await createClient();

@@ -15,10 +15,12 @@ export function Hero({
   citySlug,
   neighbourhoods,
   chefCount,
+  cityName,
 }: {
   citySlug: string;
   neighbourhoods: NeighbourhoodRecord[];
   chefCount: number;
+  cityName: string;
 }) {
   return (
     <section className="hero-warm relative overflow-hidden border-b border-sand-200">
@@ -40,7 +42,7 @@ export function Hero({
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-leaf-500 opacity-60" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-leaf-500" />
             </span>
-            {copy.home.liveBadge(chefCount)}
+            {copy.home.liveBadge(chefCount, cityName)}
           </p>
         )}
 
