@@ -35,6 +35,14 @@ const nextConfig: NextConfig = {
         pathname: "/storage/v1/**",
       },
     ],
+    // Default is 60 seconds — meaning Vercel's image-optimization cache would
+    // re-fetch every one of these from Supabase (counting against its free-
+    // tier egress) roughly once a minute under any real traffic. Every photo
+    // URL is a uuid path that's never overwritten (src/lib/media/resizeImage.ts,
+    // upsert:false everywhere it's uploaded), so a year-long cache is exactly
+    // as safe as the matching Storage-side Cache-Control set on upload — see
+    // docs/cost-controls.md.
+    minimumCacheTTL: 31536000,
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

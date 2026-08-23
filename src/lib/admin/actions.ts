@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdminAction } from "@/lib/admin/auth";
 import { revalidateChefPaths } from "@/lib/revalidate";
+import { deleteChefPhotoObject } from "@/lib/supabase/storage";
 import { timingsSchema, nutritionSchema } from "@/types/schemas";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/types/db";
@@ -481,8 +482,16 @@ export async function saveMenuItem(
 export async function deleteMenuItem(chefId: string, itemId: string): Promise<ActionResult> {
   try {
     const { supabase } = await requireAdminAction();
+    // The item's photo (if any) is always chef-set — this panel doesn't write
+    // photo_url itself — but deleting the item should still free the blob.
+    const { data: existing } = await supabase
+      .from("menu_items")
+      .select("photo_url")
+      .eq("id", itemId)
+      .maybeSingle();
     const { error } = await supabase.from("menu_items").delete().eq("id", itemId);
     if (error) throw new Error(error.message);
+    await deleteChefPhotoObject(supabase, existing?.photo_url);
     await revalidateChef(supabase, chefId);
     return { ok: true };
   } catch (e) {
@@ -519,8 +528,14 @@ export async function addPhoto(
 export async function deletePhoto(chefId: string, photoId: string): Promise<ActionResult> {
   try {
     const { supabase } = await requireAdminAction();
+    const { data: existing } = await supabase
+      .from("chef_photos")
+      .select("url")
+      .eq("id", photoId)
+      .maybeSingle();
     const { error } = await supabase.from("chef_photos").delete().eq("id", photoId);
     if (error) throw new Error(error.message);
+    await deleteChefPhotoObject(supabase, existing?.url);
     await revalidateChef(supabase, chefId);
     return { ok: true };
   } catch (e) {

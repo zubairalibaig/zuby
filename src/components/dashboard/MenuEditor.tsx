@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/browser";
 import { useRouter } from "next/navigation";
 import { chefSaveMenuItem, chefDeleteMenuItem } from "@/lib/chef/actions";
 import { copy } from "@/lib/copy/en";
+import { resizeImage, IMMUTABLE_CACHE_CONTROL } from "@/lib/media/resizeImage";
 import type { Nutrition } from "@/types/schemas";
 import type { Json } from "@/types/db";
 
@@ -43,27 +44,9 @@ const EMPTY_ITEM = {
   photoUrl: null as string | null,
 };
 
-/** Same resize-before-upload as the kitchen photos: most chefs upload straight
- *  off a phone camera, and a 4 MB original helps nobody. */
-async function resizeImage(file: File, max = 900): Promise<Blob> {
-  return new Promise((resolve) => {
-    const img = new window.Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      let { width, height } = img;
-      if (width > max || height > max) {
-        const ratio = Math.min(max / width, max / height);
-        width = Math.round(width * ratio);
-        height = Math.round(height * ratio);
-      }
-      canvas.width = width;
-      canvas.height = height;
-      canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
-      canvas.toBlob((blob) => resolve(blob!), "image/jpeg", 0.85);
-    };
-    img.src = URL.createObjectURL(file);
-  });
-}
+// Dish photos are shown at 64-80px everywhere they appear — a fraction of the
+// kitchen/food photo cap, since nothing on the site displays one any larger.
+const MAX_DISH_PHOTO_EDGE = 500;
 
 /** Nutrition fields shown in the expander, in the order chefs think about them. */
 const NUTRITION_FIELDS: { key: keyof Nutrition; label: string; suffix: string }[] = [
@@ -293,14 +276,19 @@ function ItemForm({
     setUploading(true);
     setUploadError(null);
     try {
-      const blob = await resizeImage(file);
+      const { blob, contentType, extension } = await resizeImage(file, {
+        maxEdge: MAX_DISH_PHOTO_EDGE,
+      });
       const supabase = createClient();
-      const path = `${chefId}/${crypto.randomUUID()}.jpg`;
+      const path = `${chefId}/${crypto.randomUUID()}.${extension}`;
       const { error: upErr } = await supabase.storage
         .from("chef-photos")
-        .upload(path, blob, { contentType: "image/jpeg", upsert: false });
+        .upload(path, blob, { contentType, upsert: false, cacheControl: IMMUTABLE_CACHE_CONTROL });
       if (upErr) throw new Error(upErr.message);
       const { data } = supabase.storage.from("chef-photos").getPublicUrl(path);
+      // The previous photo (if replacing one) is only cleaned up on save —
+      // see chefSaveMenuItem — never here, so cancelling this edit doesn't
+      // orphan the photo the still-saved item is showing.
       setForm({ ...form, photoUrl: data.publicUrl });
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Upload failed");

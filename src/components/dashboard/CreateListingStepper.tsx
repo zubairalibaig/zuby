@@ -6,6 +6,7 @@ import Image from "next/image";
 import { createChefListing, saveChefDraft, submitForReview } from "@/lib/chef/actions";
 import { createClient } from "@/lib/supabase/browser";
 import { copy } from "@/lib/copy/en";
+import { resizeImage, IMMUTABLE_CACHE_CONTROL } from "@/lib/media/resizeImage";
 import type { RefData } from "@/lib/admin/queries";
 import type { MyChefDetail } from "@/lib/chef/queries";
 
@@ -16,7 +17,9 @@ interface Props {
 }
 
 const STEPS = copy.createListing.steps;
-const MAX_PHOTO_SIZE = 1200;
+// Same cap as the dashboard photo manager — these land in the same
+// chef_photos table and get the same public display treatment.
+const MAX_PHOTO_SIZE = 1000;
 
 function slugify(name: string): string {
   return name
@@ -24,27 +27,6 @@ function slugify(name: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);
-}
-
-async function resizeImage(file: File): Promise<Blob> {
-  return new Promise((resolve) => {
-    const img = new window.Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      let { width, height } = img;
-      if (width > MAX_PHOTO_SIZE || height > MAX_PHOTO_SIZE) {
-        const ratio = Math.min(MAX_PHOTO_SIZE / width, MAX_PHOTO_SIZE / height);
-        width = Math.round(width * ratio);
-        height = Math.round(height * ratio);
-      }
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0, width, height);
-      canvas.toBlob((blob) => resolve(blob!), "image/jpeg", 0.85);
-    };
-    img.src = URL.createObjectURL(file);
-  });
 }
 
 export function CreateListingStepper({ refData, draft }: Props) {
@@ -203,15 +185,18 @@ export function CreateListingStepper({ refData, draft }: Props) {
       setUploading(true);
       setError(null);
       try {
-        const resized = await resizeImage(file);
+        const { blob, contentType, extension } = await resizeImage(file, {
+          maxEdge: MAX_PHOTO_SIZE,
+        });
         const supabase = createClient();
         // Bucket is `chef-photos`; the path inside it must NOT repeat that
         // name. Filename is a uuid, not a timestamp — two uploads in the same
         // millisecond collide, and upsert:false turns that into a failed upload.
-        const path = `${chefId}/${crypto.randomUUID()}.jpg`;
-        const { error: upErr } = await supabase.storage.from("chef-photos").upload(path, resized, {
-          contentType: "image/jpeg",
+        const path = `${chefId}/${crypto.randomUUID()}.${extension}`;
+        const { error: upErr } = await supabase.storage.from("chef-photos").upload(path, blob, {
+          contentType,
           upsert: false,
+          cacheControl: IMMUTABLE_CACHE_CONTROL,
         });
         if (upErr) throw new Error(upErr.message);
         const { data: urlData } = supabase.storage.from("chef-photos").getPublicUrl(path);
