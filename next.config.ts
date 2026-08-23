@@ -43,6 +43,15 @@ const nextConfig: NextConfig = {
     // as safe as the matching Storage-side Cache-Control set on upload — see
     // docs/cost-controls.md.
     minimumCacheTTL: 31536000,
+    // Each distinct width Next requests is a separate billable transformation
+    // against Vercel's image-optimization quota. The largest any image is
+    // actually displayed at on this site is 200px (`sizes` props are all
+    // 64/112/200px), so ~600px covers a 3x phone screen and the stock ceilings
+    // of 384/3840 would only ever produce upscaled variants of a source image
+    // that is itself capped at 1000px. Trimmed to what the UI can use, with a
+    // little headroom; widen these if a full-bleed image is ever introduced.
+    imageSizes: [64, 96, 128, 256, 384],
+    deviceSizes: [640, 828, 1080],
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
