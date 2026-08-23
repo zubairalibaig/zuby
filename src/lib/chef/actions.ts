@@ -3,7 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { revalidateChefPaths } from "@/lib/revalidate";
-import { timingsSchema, nutritionSchema, e164Schema, fssaiSchema } from "@/types/schemas";
+import {
+  timingsSchema,
+  nutritionSchema,
+  e164Schema,
+  fssaiSchema,
+  normaliseE164,
+} from "@/types/schemas";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/types/db";
 
@@ -89,6 +95,30 @@ export async function createChefListing(input: {
       .maybeSingle();
     if (existing) return { ok: false, error: "You already have a listing.", chefId: existing.id };
 
+    // A pending claim doesn't set claimed_by, so without this check a chef who
+    // has claimed a kitchen and come back would create a second listing for the
+    // same kitchen while the first claim is still being reviewed.
+    const { data: pendingClaim } = await supabase
+      .from("claims")
+      .select("id")
+      .eq("claimant_user_id", user.id)
+      .eq("status", "pending")
+      .maybeSingle();
+    if (pendingClaim) {
+      return {
+        ok: false,
+        error:
+          "You have a claim waiting for review. We'll email you when it's decided — no need to create a second listing.",
+      };
+    }
+
+    // Same reason as the stepper's client-side check: a listing with no
+    // neighbourhood has no public URL. Enforced here too so a forged request
+    // can't create one.
+    if (!input.neighbourhoodId) {
+      return { ok: false, error: "Please choose the neighbourhood your kitchen is in." };
+    }
+
     const { data: created, error } = await supabase
       .from("chefs")
       .insert({
@@ -137,11 +167,18 @@ export async function saveChefDraft(
     const supabase = await createClient();
     await requireOwnership(supabase, chefId);
 
-    // Validate what's provided.
+    // Normalise before validating: chefs type spaces and dashes, and our own
+    // placeholder shows them.
+    if (fields.whatsappE164) fields.whatsappE164 = normaliseE164(fields.whatsappE164);
+    if (fields.phoneE164) fields.phoneE164 = normaliseE164(fields.phoneE164);
+
     if (fields.whatsappE164) {
       const parsed = e164Schema.safeParse(fields.whatsappE164);
       if (!parsed.success)
-        return { ok: false, error: "WhatsApp number must be E.164 format (e.g. +919900000001)" };
+        return {
+          ok: false,
+          error: "Enter the WhatsApp number with its country code, e.g. +91 99000 00001.",
+        };
     }
     if (fields.fssaiNumber) {
       const parsed = fssaiSchema.safeParse(fields.fssaiNumber);
@@ -226,17 +263,52 @@ export async function submitForReview(chefId: string): Promise<ActionResult> {
     const supabase = await createClient();
     await requireOwnership(supabase, chefId);
 
-    const { error } = await supabase
+    // draft: finishing the create flow. rejected: fixing what was wrong and
+    // trying again — without that a rejected chef has no way back into the
+    // queue. chefs_guard allows exactly these two transitions.
+    const { data: updated, error } = await supabase
       .from("chefs")
       .update({ status: "pending_review" as const })
       .eq("id", chefId)
-      .eq("status", "draft");
+      .in("status", ["draft", "rejected"])
+      .select("id");
     if (error) throw new Error(error.message);
+
+    // An update that matches nothing is not an error in PostgREST, so without
+    // this the UI would report success while the listing sat in the same state.
+    if (!updated || updated.length === 0) {
+      return {
+        ok: false,
+        error: "This listing can't be submitted right now — it may already be under review.",
+      };
+    }
 
     revalidatePath("/dashboard");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed" };
+  }
+}
+
+/**
+ * The photo URL is chosen by the browser, so it has to be checked here: without
+ * this a chef could point their listing at any URL on the internet. next/image
+ * would refuse to render it (remotePatterns), but the value also lands in
+ * JSON-LD and in the OG metadata, where nothing else validates it.
+ */
+function isOwnStorageUrl(url: string, chefId: string): boolean {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!base) return false;
+  try {
+    const parsed = new URL(url);
+    const expectedHost = new URL(base).host;
+    return (
+      parsed.protocol === "https:" &&
+      parsed.host === expectedHost &&
+      parsed.pathname.startsWith(`/storage/v1/object/public/chef-photos/${chefId}/`)
+    );
+  } catch {
+    return false;
   }
 }
 
@@ -258,6 +330,8 @@ export async function chefSaveMenuItem(
     isAvailable: boolean;
     nutrition: unknown;
     sortOrder: number;
+    /** Dish photo, uploaded to our own storage. Optional. */
+    photoUrl?: string | null;
   },
 ): Promise<ActionResult> {
   try {
@@ -287,9 +361,15 @@ export async function chefSaveMenuItem(
       nutrition = parsed.data as unknown as Json;
     }
 
+    // Same origin check as the kitchen photo: the URL comes from the browser.
+    if (item.photoUrl && !isOwnStorageUrl(item.photoUrl, chefId)) {
+      return { ok: false, error: "That photo URL isn't a Zuby upload." };
+    }
+
     const row = {
       chef_id: chefId,
       name: item.name,
+      photo_url: item.photoUrl ?? null,
       description: item.description,
       price: item.price,
       currency_code: currencyCode,
@@ -372,28 +452,6 @@ export async function chefSaveTimings(
 // ---------------------------------------------------------------------------
 // Photos
 // ---------------------------------------------------------------------------
-
-/**
- * The photo URL is chosen by the browser, so it has to be checked here: without
- * this a chef could point their listing at any URL on the internet. next/image
- * would refuse to render it (remotePatterns), but the value also lands in
- * JSON-LD and in the OG metadata, where nothing else validates it.
- */
-function isOwnStorageUrl(url: string, chefId: string): boolean {
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!base) return false;
-  try {
-    const parsed = new URL(url);
-    const expectedHost = new URL(base).host;
-    return (
-      parsed.protocol === "https:" &&
-      parsed.host === expectedHost &&
-      parsed.pathname.startsWith(`/storage/v1/object/public/chef-photos/${chefId}/`)
-    );
-  } catch {
-    return false;
-  }
-}
 
 export async function chefAddPhoto(
   chefId: string,
@@ -492,11 +550,17 @@ export async function chefSaveProfile(
     const supabase = await createClient();
     await requireOwnership(supabase, chefId);
 
-    // Validate inputs.
+    // Normalise before validating (see saveChefDraft).
+    if (input.whatsappE164) input.whatsappE164 = normaliseE164(input.whatsappE164);
+    if (input.phoneE164) input.phoneE164 = normaliseE164(input.phoneE164);
+
     if (input.whatsappE164) {
       const parsed = e164Schema.safeParse(input.whatsappE164);
       if (!parsed.success)
-        return { ok: false, error: "WhatsApp number must be E.164 format (e.g. +919900000001)" };
+        return {
+          ok: false,
+          error: "Enter the WhatsApp number with its country code, e.g. +91 99000 00001.",
+        };
     }
     if (input.fssaiNumber) {
       const parsed = fssaiSchema.safeParse(input.fssaiNumber);

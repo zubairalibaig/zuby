@@ -264,6 +264,9 @@ export const copy = {
     findKitchenDesc: "I already have a listing on Zuby that I want to manage.",
     listKitchen: "List my kitchen",
     listKitchenDesc: "I want to create a new listing for my home kitchen.",
+    claimPendingHeading: "Your claim is with us",
+    claimPendingBody:
+      "waiting on a quick check. We'll email you when it's decided — usually same-day. No need to create a second listing.",
   },
 
   claim: {
@@ -308,6 +311,9 @@ export const copy = {
     displayNamePlaceholder: "e.g. Aisha",
     cityLabel: "City",
     neighbourhoodLabel: "Neighbourhood",
+    neighbourhoodPrompt: "Choose your neighbourhood…",
+    neighbourhoodRequired:
+      "Please choose your neighbourhood — your Zuby page address is built from it.",
     locationHeading: "Where is your kitchen?",
     useMyLocation: "Use my location",
     radiusLabel: "How far will you deliver?",

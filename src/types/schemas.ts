@@ -61,6 +61,22 @@ export const e164Schema = z
   .string()
   .regex(/^\+[1-9]\d{6,14}$/, "expected E.164, e.g. +919900000001");
 
+/**
+ * Normalise what a person actually types into E.164 before validating.
+ * Our own placeholder shows "+91 99000 00001", and the raw schema rejects
+ * spaces — so a chef copying the format we showed them got an error. Strips
+ * spaces, dashes, brackets and dots, and converts a leading "00" to "+".
+ * A number with no country code is left alone so validation still rejects it
+ * rather than us guessing the wrong country (multi-country from day zero).
+ */
+export function normaliseE164(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed) return trimmed;
+  const cleaned = trimmed.replace(/[\s\-().]/g, "");
+  if (cleaned.startsWith("00")) return `+${cleaned.slice(2)}`;
+  return cleaned;
+}
+
 /** India FSSAI registration number. */
 export const fssaiSchema = z.string().regex(/^\d{14}$/, "FSSAI number must be 14 digits");
 

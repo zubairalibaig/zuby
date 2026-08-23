@@ -90,7 +90,7 @@ export default async function DashboardOverview() {
               {copy.dashboard.viewPublicPage} →
             </Link>
           )}
-          {chef.status === "draft" && (
+          {(chef.status === "draft" || chef.status === "rejected") && (
             <Link
               href="/dashboard/create"
               className="rounded-lg border border-zuby-500 px-4 py-2 text-sm font-semibold text-zuby-600 hover:bg-zuby-50"

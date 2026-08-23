@@ -214,3 +214,46 @@ export async function getChefStats(
   }
   return { waClicks, profileViews };
 }
+
+export interface PendingClaim {
+  id: string;
+  chefId: string;
+  kitchenName: string;
+  createdAt: string;
+}
+
+/**
+ * Claims this user has waiting on a decision.
+ *
+ * A pending claim sets no `claimed_by`, so a chef who claims a kitchen and
+ * comes back later has no listing attached to them and lands on the onboarding
+ * chooser — as if the claim never happened. This is what the dashboard uses to
+ * tell them it did.
+ */
+export async function getMyPendingClaims(supabase: Client): Promise<PendingClaim[]> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("claims")
+    .select("id, chef_id, created_at, chefs(kitchen_name)")
+    .eq("claimant_user_id", user.id)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.warn("getMyPendingClaims:", error.message);
+    return [];
+  }
+
+  return (data ?? []).map((row) => {
+    const chef = row.chefs as unknown as { kitchen_name: string } | null;
+    return {
+      id: row.id,
+      chefId: row.chef_id,
+      kitchenName: chef?.kitchen_name ?? "your kitchen",
+      createdAt: row.created_at,
+    };
+  });
+}

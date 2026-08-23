@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Image from "next/image";
+import { createClient } from "@/lib/supabase/browser";
 import { useRouter } from "next/navigation";
 import { chefSaveMenuItem, chefDeleteMenuItem } from "@/lib/chef/actions";
 import { copy } from "@/lib/copy/en";
@@ -38,7 +40,30 @@ const EMPTY_ITEM = {
   isAvailable: true,
   nutrition: {} as Nutrition,
   sortOrder: 0,
+  photoUrl: null as string | null,
 };
+
+/** Same resize-before-upload as the kitchen photos: most chefs upload straight
+ *  off a phone camera, and a 4 MB original helps nobody. */
+async function resizeImage(file: File, max = 900): Promise<Blob> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let { width, height } = img;
+      if (width > max || height > max) {
+        const ratio = Math.min(max / width, max / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => resolve(blob!), "image/jpeg", 0.85);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
 
 /** Nutrition fields shown in the expander, in the order chefs think about them. */
 const NUTRITION_FIELDS: { key: keyof Nutrition; label: string; suffix: string }[] = [
@@ -72,6 +97,7 @@ export function DashboardMenuEditor({ chefId, currencyCode, menuItems }: Props) 
       isAvailable: item.isAvailable,
       nutrition: (item.nutrition ?? {}) as Nutrition,
       sortOrder: item.sortOrder,
+      photoUrl: item.photoUrl,
     });
     setError(null);
   }
@@ -106,6 +132,7 @@ export function DashboardMenuEditor({ chefId, currencyCode, menuItems }: Props) 
         isAvailable: form.isAvailable,
         nutrition: form.nutrition,
         sortOrder: form.sortOrder,
+        photoUrl: form.photoUrl,
       });
       if (!result.ok) {
         setError(result.error ?? "Failed");
@@ -143,11 +170,23 @@ export function DashboardMenuEditor({ chefId, currencyCode, menuItems }: Props) 
               isPending={isPending}
               bestSellerCount={bestSellerCount}
               currentId={item.id}
+              chefId={chefId}
               onSave={() => save(item.id)}
               onCancel={cancel}
             />
           ) : (
             <div className="flex items-start justify-between gap-3">
+              {item.photoUrl && (
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
+                  <Image
+                    src={item.photoUrl}
+                    alt={item.name}
+                    fill
+                    sizes="64px"
+                    className="object-cover"
+                  />
+                </div>
+              )}
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span>{dietaryIcon(item.dietary)}</span>
@@ -203,6 +242,7 @@ export function DashboardMenuEditor({ chefId, currencyCode, menuItems }: Props) 
             isPending={isPending}
             bestSellerCount={bestSellerCount}
             currentId={undefined}
+            chefId={chefId}
             onSave={() => save()}
             onCancel={cancel}
           />
@@ -229,6 +269,7 @@ function ItemForm({
   isPending,
   bestSellerCount,
   currentId,
+  chefId,
   onSave,
   onCancel,
 }: {
@@ -238,10 +279,35 @@ function ItemForm({
   isPending: boolean;
   bestSellerCount: number;
   currentId: string | undefined;
+  chefId: string;
   onSave: () => void;
   onCancel: () => void;
 }) {
   const canToggleBestSeller = form.isBestSeller || bestSellerCount < 3;
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  async function uploadPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const blob = await resizeImage(file);
+      const supabase = createClient();
+      const path = `${chefId}/${crypto.randomUUID()}.jpg`;
+      const { error: upErr } = await supabase.storage
+        .from("chef-photos")
+        .upload(path, blob, { contentType: "image/jpeg", upsert: false });
+      if (upErr) throw new Error(upErr.message);
+      const { data } = supabase.storage.from("chef-photos").getPublicUrl(path);
+      setForm({ ...form, photoUrl: data.publicUrl });
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
   const nutrition = form.nutrition ?? {};
   const [showNutrition, setShowNutrition] = useState(Object.keys(nutrition).length > 0);
 
@@ -325,6 +391,42 @@ function ItemForm({
           Best seller{!canToggleBestSeller && " (max 3)"}
         </label>
       </div>
+      {/* Dish photo. The public menu row already renders one — until now there
+          was no way for anyone to add it. */}
+      <div className="flex items-center gap-3">
+        {form.photoUrl ? (
+          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
+            <Image src={form.photoUrl} alt="" fill sizes="80px" className="object-cover" />
+          </div>
+        ) : (
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border-2 border-dashed border-neutral-300 text-2xl text-neutral-300">
+            🍽️
+          </div>
+        )}
+        <div className="space-y-1">
+          <label className="inline-block cursor-pointer rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={uploadPhoto}
+              disabled={uploading}
+            />
+            {uploading ? "Uploading…" : form.photoUrl ? "Replace photo" : "Add a photo"}
+          </label>
+          {form.photoUrl && (
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, photoUrl: null })}
+              className="ml-2 text-xs text-red-500 hover:text-red-600"
+            >
+              Remove
+            </button>
+          )}
+          {uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
+        </div>
+      </div>
+
       {/* Nutrition — optional, tucked behind an expander so the common path stays short. */}
       <div>
         <button
