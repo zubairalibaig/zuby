@@ -21,6 +21,18 @@ export const metadata: Metadata = {
     ],
     apple: "/apple-touch-icon.png",
   },
+  // Search Console / Bing Webmaster ownership via the HTML-tag method — belt
+  // and braces alongside the DNS TXT method in docs/seo-playbook.md (the DNS
+  // route already covers the whole domain; this is a zero-cost second path
+  // that also satisfies tools that specifically want a meta tag). Both env
+  // vars are optional and absent by default — unset means no tag is rendered,
+  // never a placeholder value shipped to production.
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION,
+    other: process.env.BING_SITE_VERIFICATION
+      ? { "msvalidate.01": process.env.BING_SITE_VERIFICATION }
+      : undefined,
+  },
 };
 
 export const viewport = {

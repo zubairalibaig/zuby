@@ -19,11 +19,29 @@ import { DiscoveryEmpty } from "@/components/home/DiscoveryEmpty";
 
 export const revalidate = 600;
 
-export const metadata: Metadata = {
-  title: copy.metaTitle,
-  description: copy.metaDescription,
-  alternates: { canonical: "/" },
-};
+/**
+ * Dynamic, not the static fallback in the root layout — the title and
+ * description lead with the exact phrases we most want to rank for (home
+ * chef, home tiffin, tiffin service, home-cooked food) anchored to whichever
+ * city is actually live, pulled from data rather than hardcoded (CLAUDE.md).
+ * Falls back to the generic copy only if the DB is unreachable at request
+ * time, same defensive pattern the page body already uses below.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const primaryCity = (await getActiveCities().catch(() => []))[0];
+  if (!primaryCity) {
+    return {
+      title: copy.metaTitle,
+      description: copy.metaDescription,
+      alternates: { canonical: "/" },
+    };
+  }
+  return {
+    title: copy.homeMetaTitle(primaryCity.name),
+    description: copy.homeMetaDescription(primaryCity.name),
+    alternates: { canonical: "/" },
+  };
+}
 
 const CUISINE_EMOJI: Record<string, string> = {
   biryani: "🍛",

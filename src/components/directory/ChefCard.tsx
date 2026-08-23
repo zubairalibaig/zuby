@@ -46,7 +46,7 @@ export function ChefCard({ chef, tagNames, cuisineNames }: ChefCardProps) {
         {chef.photo_url ? (
           <Image
             src={chef.photo_url}
-            alt={chef.kitchen_name}
+            alt={`${chef.kitchen_name} — home chef in ${chef.neighbourhood_name ?? chef.address_area ?? chef.city_slug}`}
             fill
             sizes="112px"
             className="object-cover transition duration-300 group-hover:scale-105"

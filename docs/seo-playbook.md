@@ -21,6 +21,12 @@ ritual works, because there's nothing to review until Google is reporting.
 3. Google gives you a `TXT` record. Add it in **Cloudflare → zuby.food → DNS**,
    set to **DNS only** (grey cloud — proxying breaks TXT verification, the same
    rule as `docs/dns-cloudflare-setup.md` and `docs/resend-setup.md`).
+   Alternatively, Google also offers an **HTML tag** method — a short token
+   you can set as `GOOGLE_SITE_VERIFICATION` in Vercel env vars instead of
+   touching DNS. The code already renders it (`src/app/layout.tsx`) if set;
+   the DNS method is still preferred because it verifies the whole domain in
+   one step, but the env var is there for a URL-prefix property or a quick
+   re-verify without a DNS round trip.
 4. Verify. Then **Sitemaps → Add a new sitemap** and submit all three:
    ```
    sitemap.xml
@@ -38,7 +44,9 @@ really AI-visibility work wearing a search-engine costume.
 
 1. **bing.com/webmasters** → Add site.
 2. Choose **Import from Google Search Console** — it carries the verification
-   and the sitemaps across in one click.
+   and the sitemaps across in one click. If you'd rather verify Bing
+   independently, its meta-tag method works too: set `BING_SITE_VERIFICATION`
+   to the token it gives you and the layout renders it automatically.
 3. Turn on **IndexNow**. Bing then picks up changes on push rather than waiting
    for a crawl.
 
