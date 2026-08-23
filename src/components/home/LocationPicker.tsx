@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { NeighbourhoodRecord } from "@/lib/supabase/queries";
 import { copy } from "@/lib/copy/en";
 
@@ -41,6 +42,7 @@ export function LocationPicker({
   const [filter, setFilter] = useState("");
   const [locating, setLocating] = useState(false);
   const [denied, setDenied] = useState(false);
+  const router = useRouter();
 
   // Restore the last choice so a returning buyer isn't asked again.
   useEffect(() => {
@@ -64,6 +66,13 @@ export function LocationPicker({
     }
     setOpen(false);
     setFilter("");
+    // Setting a location used to only relabel this pill — nothing on the home
+    // page itself is filtered by distance (the rails below are city-wide), so
+    // the only visible effect was a small link appearing further down the
+    // page that the buyer had to notice and click a second time. That read as
+    // "nothing happened" / broken. Go straight to the results instead, same
+    // as tapping "Show chefs near X" would — one action, one outcome.
+    router.push(`/search?lat=${loc.lat}&lng=${loc.lng}`);
   }
 
   function useMyLocation() {
