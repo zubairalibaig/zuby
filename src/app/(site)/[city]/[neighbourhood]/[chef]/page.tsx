@@ -63,7 +63,18 @@ export async function generateMetadata({ params }: ChefPageProps): Promise<Metad
     title,
     description,
     alternates: { canonical: path },
-    openGraph: { title, description, images: chef.photoUrl ? [chef.photoUrl] : undefined },
+    // NOTE: deliberately no `openGraph.images` here. Setting it — even to
+    // `undefined` — makes Next skip the generated `opengraph-image.tsx` card,
+    // because its merge check is `openGraph.hasOwnProperty('images')`, which is
+    // true for an explicitly-undefined key (see next/dist/lib/metadata/
+    // resolve-metadata.js). That previously caused two problems at once:
+    // chefs WITH a cover photo had og:image pointing at the raw Supabase
+    // Storage URL, so every WhatsApp forward and social unfurl pulled the
+    // full image straight out of Supabase — uncached by us, and the one
+    // egress path that grows with how well the product does; and chefs
+    // WITHOUT one got no og:image at all. Omitting the key entirely lets the
+    // branded card win in both cases, and it is served from Vercel's edge.
+    openGraph: { title, description },
   };
 }
 

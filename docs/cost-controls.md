@@ -28,7 +28,69 @@ hit rate** (what fraction of those requests actually reach Supabase versus
 get served from a cache in front of it). This document's changes attack all
 three.
 
+### The three paths images actually leave Supabase by
+
+Not all egress is equal, and the distinction is what makes this tractable:
+
+| Path | Who fetches | Cached by us? | Scales with |
+|---|---|---|---|
+| **A.** `next/image` source pulls | Vercel's optimizer | Yes — 1 year (§2) | Number of *images* |
+| **B.** `og:image` on a share | WhatsApp, Slack, FB, Twitter | **No — direct hit** | Number of *shares* |
+| **C.** JSON-LD `image` | Googlebot / Google Images | Crawler-side only | Crawl schedule |
+
+**A is bounded and safe.** It scales with how many photos exist, not how
+many people look, because Vercel caches the source. At 200 chefs × 6 photos
+(~140 MB of stored images), even re-pulled across several Vercel regions
+annually, that's roughly 47 MB/month — **under 1%** of a 5 GB monthly
+allowance.
+
+**B was the real danger, and it scales with success.** It is the only path
+where one extra visitor genuinely means one more full-size fetch out of
+Supabase, and Zuby's whole distribution model is WhatsApp forwards
+(`CONCEPT.md`). At ~120 KB per fetch, roughly **44,000 share-unfurls a
+month would exhaust the entire egress tier on its own** — and a directory
+that's working would get there. This is the shape of bill that arrives
+suddenly rather than gradually, and it's the one that was live in this
+codebase until the fix in §2.
+
+**C is left as-is deliberately.** It's bounded by Googlebot's crawl
+schedule rather than by user behaviour, it doesn't multiply when a link
+goes around a WhatsApp group, and exposing the real dish photo is the
+entire point of the Google Images play in
+`docs/discoverability-strategy.md` §15. Trading that away to save a
+rounding error of bandwidth would be the wrong call.
+
 ## 2. What's now enforced in code
+
+### The `og:image` leak (path B) — the important one
+
+`generateMetadata` on the chef profile set
+`openGraph.images` to **the raw Supabase Storage URL**. Every WhatsApp
+forward, Slack unfurl, Facebook and Twitter share, and social crawler
+re-check therefore pulled the full image directly out of Supabase — never
+touching Vercel's optimizer, never touching any cache this codebase
+controls.
+
+The same line broke the branded share card in a second, non-obvious way.
+Next merges the file-convention `opengraph-image.tsx` only when the
+returned metadata does **not** have an `images` key, and the check is
+`openGraph.hasOwnProperty('images')` (see
+`next/dist/lib/metadata/resolve-metadata.js`). `hasOwnProperty` is **true
+for a key explicitly set to `undefined`** — verified directly. So
+`images: chef.photoUrl ? [chef.photoUrl] : undefined` meant:
+
+- chef **with** a cover photo → `og:image` = raw Supabase URL (the leak)
+- chef **without** one → `images: undefined`, key present, card suppressed
+  → **no `og:image` at all**
+
+The nicely-designed 1200×630 card built in Phase 5 was therefore never
+served for any chef. **Fix: omit the `images` key entirely.** The generated
+card now wins in both cases — it renders from Vercel's edge, costs Supabase
+nothing per share, works for chefs with no photo yet, and is better
+branding than a bare cropped food photo. Strictly better on cost,
+correctness and marketing at once.
+
+### The rest
 
 **Every photo is resized and recompressed in the browser before it ever
 reaches Supabase** (`src/lib/media/resizeImage.ts`, used by all four upload
@@ -89,12 +151,23 @@ function per request at all — that's the existing architecture doing the
 right thing already, not a change made here.
 
 **What to watch:** Image Optimization has its own free-tier allowance,
-separate from bandwidth, measured in source images processed per month.
-The cache-TTL fix in §2 is the direct mitigation — a source image that's
-only ever transformed once (then served from cache for a year) uses the
-allowance once, not once per visit. As chef count grows into the hundreds
-with several photos each, this is the number to check first if anything
-looks tight.
+separate from bandwidth, and it is metered per *transformation* — each
+distinct width of each source image counts. Two mitigations are in place:
+
+- The cache-TTL fix in §2 — a source image transformed once and then served
+  from cache for a year uses the allowance once, not once per visit.
+- `imageSizes` / `deviceSizes` in `next.config.ts` are trimmed to what the
+  UI can actually use. Every `sizes` prop on the site is 64px, 112px or
+  200px, so the stock ceilings (384 for `imageSizes`, **3840** for
+  `deviceSizes`) could only ever produce upscaled variants of a source
+  image that is itself capped at 1000px — burning transformation quota to
+  generate something visibly worse. Capped at 384/1080 respectively, which
+  still covers a 200px slot on a 3x phone screen. **Widen these again if a
+  full-bleed hero image is ever added** — there is none today (the home
+  hero is CSS gradients, not an image).
+
+This is the Vercel number to check first if anything looks tight, since
+bandwidth is comfortably covered by the ISR/static posture above.
 
 **Worth knowing, not urgent:** Vercel's Hobby (free) plan terms describe
 it for personal/non-commercial use. Zuby is pre-revenue today, which is a
@@ -127,6 +200,28 @@ further — genuinely a nice-to-have, not a requirement, and it means
 revisiting whatever caused the "Invalid Configuration" issue that pushed
 the setup to DNS-only in the first place. Leave this for later unless
 there's a specific reason to revisit it.
+
+### The escape hatch, deliberately not built yet
+
+If Supabase egress ever *does* start climbing, the structural fix is to put
+Cloudflare's free CDN directly in front of Supabase Storage — serve photos
+from an `img.zuby.food` hostname that Cloudflare proxies and caches, so
+Supabase serves each image roughly once per edge location rather than once
+per cache-miss. Combined with the 1-year `Cache-Control` already set on
+every upload, that drives Supabase image egress to approximately zero
+permanently, at no cost (Cloudflare's free plan does not meter proxied
+bandwidth).
+
+**This is not built, on purpose.** Per §1 the normal browsing path is under
+1% of the allowance once path B is closed, so building it today would add
+real moving parts — a hostname, a Host-header rewrite or a Worker, since
+Supabase Storage will not answer to an arbitrary `Host` — to solve a
+problem that no longer exists. That is exactly the kind of pre-emptive
+infrastructure `CLAUDE.md` says to avoid.
+
+**Concrete trigger to build it:** Supabase egress crossing ~40% of the
+monthly allowance (≈2 GB) in the §7 check, two months running. At that
+point the work is a half-day and this section is the starting point.
 
 ## 5. Supabase database size
 
