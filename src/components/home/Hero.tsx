@@ -23,9 +23,13 @@ export function Hero({
   cityName: string;
 }) {
   return (
-    <section className="hero-warm relative overflow-hidden border-b border-sand-200">
+    <section className="hero-warm relative border-b border-sand-200">
       {/* Texture. Kept clear of the search card, and out of the way entirely on
-          small screens where there is no room to spare. */}
+          small screens where there is no room to spare. Clipped by its OWN
+          overflow-hidden wrapper below, deliberately — not the section's, which
+          used to also clip LocationPicker's dropdown results (an absolutely
+          positioned descendant of this section), cutting the area list off
+          mid-panel the moment it grew past the hero's own height. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 hidden select-none overflow-hidden lg:block"
