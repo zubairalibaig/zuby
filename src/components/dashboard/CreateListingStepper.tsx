@@ -133,6 +133,13 @@ export function CreateListingStepper({ refData, draft }: Props) {
         setError("Kitchen name and your name are required.");
         return;
       }
+      // A public chef page lives at /city/neighbourhood/kitchen. Without a
+      // neighbourhood there is no URL for this listing to exist at — it would
+      // be approved, invisible, and missing from the sitemap.
+      if (filteredHoods.length > 0 && !neighbourhoodId) {
+        setError(c.neighbourhoodRequired);
+        return;
+      }
       startTransition(async () => {
         const result = await createChefListing({
           kitchenName: kitchenName.trim(),
@@ -386,14 +393,14 @@ export function CreateListingStepper({ refData, draft }: Props) {
             {filteredHoods.length > 0 && (
               <div>
                 <label className="block text-sm font-medium text-neutral-700">
-                  {c.neighbourhoodLabel}
+                  {c.neighbourhoodLabel} <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={neighbourhoodId ?? ""}
                   onChange={(e) => setNeighbourhoodId(e.target.value || null)}
                   className="mt-1 block w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-zuby-500 focus:outline-none"
                 >
-                  <option value="">Select…</option>
+                  <option value="">{c.neighbourhoodPrompt}</option>
                   {filteredHoods.map((h) => (
                     <option key={h.id} value={h.id}>
                       {h.name}
