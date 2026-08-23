@@ -36,7 +36,14 @@ function LoginForm() {
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithOtp({
         email,
-        options: { shouldCreateUser: true },
+        options: {
+          shouldCreateUser: true,
+          // Without this, a clicked magic link falls back to the Supabase
+          // project's default Site URL — which never runs the code exchange
+          // below, so the click silently does nothing. This mirrors the
+          // Google button just below, which has always set it correctly.
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        },
       });
       if (error) throw error;
       setCodeSent(true);
@@ -120,6 +127,7 @@ function LoginForm() {
             <p className="text-sm text-neutral-600">
               {c.codeSent} <strong>{email}</strong>
             </p>
+            <p className="text-sm text-neutral-500">{c.codeSentHint}</p>
             <div>
               <label htmlFor="otp" className="block text-sm font-medium text-neutral-700">
                 {c.codeLabel}

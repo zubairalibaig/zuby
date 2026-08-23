@@ -203,6 +203,11 @@ update public.chefs set status = 'delisted' where slug = 'replace-with-chef-slug
 --
 -- Add these when a home chef signs up cooking something not yet listed, or
 -- their area isn't in the picker yet. Slugs are lowercase-hyphenated.
+--
+-- There's now an admin-panel form for this — /admin/catalog, added in
+-- 20260815000017_admin_catalog.sql — so this SQL is a fallback, not the
+-- only way in: use it when you don't have the site open, or want to add
+-- several rows in one paste.
 
 -- New cuisine:
 insert into public.cuisines (slug, name) values

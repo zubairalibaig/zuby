@@ -40,6 +40,7 @@ export function LocationPicker({
 }) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
+  const [active, setActive] = useState(0);
   const [locating, setLocating] = useState(false);
   const [denied, setDenied] = useState(false);
   const router = useRouter();
@@ -103,6 +104,30 @@ export function LocationPicker({
     ? neighbourhoods.filter((n) => n.name.toLowerCase().includes(filter.trim().toLowerCase()))
     : neighbourhoods;
 
+  // Type-forward, not autocomplete: the input filters our own coverage list,
+  // it never calls out to a places API (see the note above). But filtering
+  // alone still left no way to submit without reaching for the mouse — Enter
+  // did nothing, so a keyboard user (or anyone used to hitting Enter after
+  // typing an area, the same as OmniSearch already supports) hit a dead end.
+  // Mirror OmniSearch's arrow-key + Enter pattern so the two pickers behave
+  // the same way.
+  function onFilterKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (shown.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActive((i) => (i + 1) % shown.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((i) => (i - 1 + shown.length) % shown.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const n = shown[active] ?? shown[0];
+      if (n) choose({ label: n.name, lat: n.lat, lng: n.lng });
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  }
+
   return (
     <div className="relative">
       <button
@@ -140,18 +165,32 @@ export function LocationPicker({
 
             <input
               value={filter}
-              onChange={(e) => setFilter(e.target.value)}
+              onChange={(e) => {
+                setFilter(e.target.value);
+                setActive(0);
+              }}
+              onKeyDown={onFilterKeyDown}
               placeholder={copy.home.areaFilterPlaceholder}
+              aria-label={copy.home.areaFilterPlaceholder}
+              role="combobox"
+              aria-expanded
+              aria-controls="zuby-area-options"
+              autoFocus
               className="mt-3 w-full rounded-lg border border-sand-300 px-3 py-2 text-sm focus:border-zuby-500 focus:outline-none"
             />
 
-            <ul className="mt-2 max-h-64 overflow-y-auto">
-              {shown.map((n) => (
+            <ul id="zuby-area-options" role="listbox" className="mt-2 max-h-64 overflow-y-auto">
+              {shown.map((n, i) => (
                 <li key={`${n.citySlug}/${n.slug}`}>
                   <button
                     type="button"
+                    role="option"
+                    aria-selected={i === active}
+                    onMouseEnter={() => setActive(i)}
                     onClick={() => choose({ label: n.name, lat: n.lat, lng: n.lng })}
-                    className="w-full rounded-lg px-3 py-2 text-left text-sm text-sand-700 hover:bg-sand-50"
+                    className={`w-full rounded-lg px-3 py-2 text-left text-sm text-sand-700 ${
+                      i === active ? "bg-sand-100" : "hover:bg-sand-50"
+                    }`}
                   >
                     {n.name}
                   </button>

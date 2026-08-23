@@ -534,6 +534,16 @@ export type Database = {
         Args: { p_chef_id: string; p_days?: number };
         Returns: { kind: string; cnt: number }[];
       };
+      admin_add_neighbourhood: {
+        Args: {
+          p_city_slug: string;
+          p_slug: string;
+          p_name: string;
+          p_lat: number;
+          p_lng: number;
+        };
+        Returns: undefined;
+      };
       admin_apply_pending_edits: {
         Args: { p_chef_id: string; p_note?: string | null };
         Returns: undefined;

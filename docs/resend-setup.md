@@ -90,9 +90,17 @@ This is what makes chef login reliable.
 
 ### Worth doing: rewrite the OTP email template
 
+**This is why "I got a magic link, not a code" happens.** The default Supabase
+Magic Link template only includes a clickable link, not `{{ .Token }}` — so
+until this template is edited, the email a chef receives has no code in it at
+all, no matter what the login screen asks for. `/login` now handles either
+outcome (the button click works either way — see `emailRedirectTo` on the
+`signInWithOtp` call, and Redirect URLs in step 2.5 above, which that link
+depends on), but a chef who wants to type a code instead still needs this:
+
 **Authentication → Email Templates → Magic Link.** The default template leads with
-a magic-link button, but Zuby's login screen asks for a typed 6-digit code, so a
-chef gets an email that doesn't match the screen in front of them. Put the code first:
+a magic-link button, but Zuby's login screen also offers a typed 6-digit code, so a
+chef who prefers that gets an email with nothing to type. Put the code first:
 
 ```html
 <h2>Your Zuby sign-in code</h2>
