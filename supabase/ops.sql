@@ -190,3 +190,52 @@ update public.chefs set status = 'delisted' where slug = 'replace-with-chef-slug
 
 -- Chefs who cover a given point (Indiranagar here), nearest first:
 -- select kitchen_name, distance_km from public.search_chefs(12.9719, 77.6412, 10);
+
+
+-- ---------------------------------------------------------------------
+-- 8. ADD A NEW CUISINE OR NEIGHBOURHOOD
+-- ---------------------------------------------------------------------
+-- Both are already their own tables (public.cuisines, public.neighbourhoods)
+-- — never per-city tables, which would mean a schema migration for every
+-- new market. One neighbourhoods table with a city_id column already
+-- supports any number of cities; adding one is new ROWS, never a new
+-- TABLE (CLAUDE.md: "Countries and cities are first-class DB entities").
+--
+-- Add these when a home chef signs up cooking something not yet listed, or
+-- their area isn't in the picker yet. Slugs are lowercase-hyphenated.
+
+-- New cuisine:
+insert into public.cuisines (slug, name) values
+  ('replace-with-slug', 'Replace With Display Name')
+on conflict (slug) do nothing;
+
+-- Two small editorial follow-ups are optional, not required — the cuisine
+-- works immediately for search/filtering without them, just with less
+-- polish (CLAUDE.md: no AI-generated filler, so these stay hand-written):
+--  - CUISINE_EMOJI in src/app/(site)/page.tsx (falls back to a generic 🍽️)
+--  - cuisineBlurbs in src/lib/copy/landing.ts (two honest sentences; the
+--    cuisine's SEO landing pages render fine without one, just plainer)
+
+-- New neighbourhood (Bangalore shown — swap the slug for another city):
+insert into public.neighbourhoods (city_id, slug, name, center) values
+  (
+    (select id from public.cities where slug = 'bangalore'),
+    'replace-with-slug',
+    'Replace With Display Name',
+    extensions.st_setsrid(
+      extensions.st_makepoint(77.0000, 12.0000), -- lng, lat — note the order
+      4326
+    )::extensions.geography
+  )
+on conflict (city_id, slug) do nothing;
+
+-- Coordinates don't need to be survey-precise — see the sourcing note at
+-- the top of the neighbourhoods insert in supabase/seed.sql. A locality
+-- centroid off Google Maps (right-click a point -> the lat/lng shown) is
+-- plenty; a chef's own service_radius_km is what actually gates who shows
+-- up in search, not the neighbourhood point.
+
+-- Sanity check after adding either:
+-- select slug, name from public.cuisines order by name;
+-- select n.slug, n.name, c.slug as city from public.neighbourhoods n
+--   join public.cities c on c.id = n.city_id order by c.slug, n.name;
