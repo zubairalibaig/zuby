@@ -10,6 +10,7 @@ import { ChefCard } from "@/components/directory/ChefCard";
 import { FilterBar } from "@/components/directory/FilterBar";
 import { SearchLocationGate } from "@/components/directory/SearchLocationGate";
 import { copy } from "@/lib/copy/en";
+import { chefIdsMatchingText } from "@/lib/supabase/queries";
 
 export const metadata: Metadata = {
   title: `${copy.search.heading} | Zuby`,
@@ -24,6 +25,8 @@ interface SearchPageProps {
     tags?: string;
     cuisines?: string;
     verified?: string;
+    /** Free text from the home-page search box — a dish, kitchen or keyword. */
+    q?: string;
   }>;
 }
 
@@ -44,6 +47,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const fallbackCity = cities[0] ?? null;
   const neighbourhoods = fallbackCity ? await getNeighbourhoodsForCity(fallbackCity.slug) : [];
 
+  const cuisineNamesFor = new Map(cuisines.map((c) => [c.slug, c.name]));
+
   let results: Awaited<ReturnType<typeof searchChefs>> = [];
   if (hasLocation) {
     const radius = Number(sp.radius ?? "5");
@@ -59,6 +64,21 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       cuisineSlugs: cuisineSlugs.length > 0 ? cuisineSlugs : null,
     });
     if (verifiedOnly) results = results.filter((r) => r.is_verified);
+
+    // Free-text narrowing. The geo query stays the source of truth for *who*
+    // can deliver here; `q` only filters that set, so a keyword can never pull
+    // in a chef who doesn't serve this location.
+    const term = sp.q?.trim().toLowerCase();
+    if (term) {
+      const matchingChefIds = await chefIdsMatchingText(term);
+      results = results.filter(
+        (r) =>
+          matchingChefIds.has(r.id) ||
+          r.kitchen_name.toLowerCase().includes(term) ||
+          r.display_name.toLowerCase().includes(term) ||
+          r.cuisines.some((c) => (cuisineNamesFor.get(c) ?? c).toLowerCase().includes(term)),
+      );
+    }
   }
 
   const cuisineNames = Object.fromEntries(cuisines.map((c) => [c.slug, c.name]));
@@ -66,7 +86,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
-      <h1 className="text-2xl font-bold text-neutral-900">{copy.search.heading}</h1>
+      <h1 className="text-2xl font-bold text-neutral-900">
+        {sp.q ? copy.search.headingFor(sp.q) : copy.search.heading}
+      </h1>
 
       {!hasLocation && (
         <div className="mt-6">

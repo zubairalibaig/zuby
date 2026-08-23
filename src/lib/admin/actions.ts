@@ -642,3 +642,44 @@ export async function addRankingWin(input: {
     return { ok: false, error: e instanceof Error ? e.message : "Failed" };
   }
 }
+
+// ---------------------------------------------------------------------------
+// Promoted placement (paid). Admin-only by construction: the chefs_guard
+// trigger rejects any attempt by a chef to set these columns themselves.
+// ---------------------------------------------------------------------------
+
+export async function setPromotion(
+  chefId: string,
+  days: number,
+  weight: number,
+): Promise<ActionResult> {
+  try {
+    const { supabase } = await requireAdminAction();
+
+    const { data: chef } = await supabase
+      .from("chefs")
+      .select("status")
+      .eq("id", chefId)
+      .maybeSingle();
+    // Promotion must never be a route around verification. The SQL enforces
+    // this too (promoted_chefs filters on status), but failing loudly here
+    // stops an admin quietly selling a slot that will never render.
+    if (days > 0 && chef?.status !== "approved") {
+      return { ok: false, error: "Only an approved listing can be promoted." };
+    }
+
+    const { error } = await supabase.rpc("admin_set_promotion", {
+      p_chef_id: chefId,
+      p_days: days,
+      p_weight: weight,
+    });
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/");
+    revalidatePath("/admin/chefs");
+    revalidatePath(`/admin/chefs/${chefId}`);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed" };
+  }
+}

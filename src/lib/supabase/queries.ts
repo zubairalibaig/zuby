@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import type { SearchChefResult } from "@/types/db";
+import type { SearchChefResult, SearchSuggestion } from "@/types/db";
 import { parseNutrition, parseTimings, type Nutrition, type Timings } from "@/types/schemas";
 
 /**
@@ -359,4 +359,93 @@ export async function getApprovedChefCount(citySlug: string): Promise<number> {
     .eq("status", "approved");
   if (error) throw new Error(`getApprovedChefCount: ${error.message}`);
   return count ?? 0;
+}
+
+// ---------------------------------------------------------------------------
+// Home-page discovery (Phase 5b)
+// ---------------------------------------------------------------------------
+
+/** Resolve a city slug to its id. Null slug means "everywhere". */
+async function cityIdFor(slug: string | null | undefined): Promise<string | null> {
+  if (!slug) return null;
+  const supabase = await createClient();
+  const { data } = await supabase.from("cities").select("id").eq("slug", slug).maybeSingle();
+  return data?.id ?? null;
+}
+
+/**
+ * Omni-search across kitchens, dishes, cuisines, dietary tags and areas —
+ * one round trip, so the search box can suggest anything a buyer might type.
+ */
+export async function getSearchSuggestions(
+  term: string,
+  citySlug?: string | null,
+  limit = 12,
+): Promise<SearchSuggestion[]> {
+  if (term.trim().length < 2) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("search_suggestions", {
+    p_q: term.trim(),
+    p_city: await cityIdFor(citySlug),
+    p_limit: limit,
+  });
+  if (error) throw new Error(`getSearchSuggestions: ${error.message}`);
+  return data ?? [];
+}
+
+/**
+ * Paid placement. Always rendered with a visible "Promoted" label — see
+ * docs/promoted-listings.md for why that is not optional.
+ */
+export async function getPromotedChefs(
+  citySlug?: string | null,
+  limit = 6,
+): Promise<SearchChefResult[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("promoted_chefs", {
+    p_city: await cityIdFor(citySlug),
+    p_limit: limit,
+  });
+  if (error) throw new Error(`getPromotedChefs: ${error.message}`);
+  return data ?? [];
+}
+
+/**
+ * Trending = observed WhatsApp-click demand over the last 30 days. Not a
+ * rating: CONCEPT.md rules out reviews in V1, and this is a signal we actually
+ * have rather than one we'd have to invent.
+ */
+export async function getTrendingChefs(
+  citySlug?: string | null,
+  limit = 8,
+): Promise<SearchChefResult[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("trending_chefs", {
+    p_city: await cityIdFor(citySlug),
+    p_days: 30,
+    p_limit: limit,
+  });
+  if (error) throw new Error(`getTrendingChefs: ${error.message}`);
+  return data ?? [];
+}
+
+/**
+ * Chef ids whose menu contains a dish matching free text. Used to narrow geo
+ * results by keyword — a buyer searching "kori rotti" should find the kitchen
+ * that cooks it even though the words appear nowhere in its name.
+ */
+export async function chefIdsMatchingText(term: string): Promise<Set<string>> {
+  if (term.trim().length < 2) return new Set();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("menu_items")
+    .select("chef_id")
+    .ilike("name", `%${term.trim()}%`)
+    .eq("is_available", true)
+    .limit(500);
+  if (error) {
+    console.warn("chefIdsMatchingText:", error.message);
+    return new Set();
+  }
+  return new Set((data ?? []).map((r) => r.chef_id));
 }

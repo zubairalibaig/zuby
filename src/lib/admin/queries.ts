@@ -99,6 +99,9 @@ export interface AdminChefDetail {
   timings: Json | null;
   /** Queued trust-field edits awaiting admin approval (Phase 4). */
   pendingEdits: Json | null;
+  /** Paid placement (Phase 5b). Admin-only; chefs_guard blocks self-promotion. */
+  promotedUntil: string | null;
+  promotedWeight: number;
   cityId: string;
   citySlug: string;
   cityName: string;
@@ -143,7 +146,7 @@ export async function getAdminChef(
       `id, slug, display_name, kitchen_name, bio, photo_url, phone_e164, whatsapp_e164,
        instagram_handle, address_text, address_area, service_radius_km, status, listing_source,
        claimed_by, fssai_number, fssai_verified_at, is_verified, dietary_profile, timings,
-       pending_edits, city_id, neighbourhood_id,
+       pending_edits, promoted_until, promoted_weight, city_id, neighbourhood_id,
        cities!inner(slug, name, countries(currency_code)),
        neighbourhoods(slug)`,
     )
@@ -206,6 +209,8 @@ export async function getAdminChef(
     dietaryProfile: chef.dietary_profile,
     timings: chef.timings,
     pendingEdits: chef.pending_edits,
+    promotedUntil: chef.promoted_until,
+    promotedWeight: chef.promoted_weight,
     cityId: chef.city_id,
     citySlug: city.slug,
     cityName: city.name,

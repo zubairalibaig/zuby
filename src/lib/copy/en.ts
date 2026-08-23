@@ -83,6 +83,7 @@ export const copy = {
 
   search: {
     heading: "Chefs near you",
+    headingFor: (q: string) => `"${q}" near you`,
     radiusLabel: "Distance",
     dietaryLabel: "Dietary",
     cuisineLabel: "Cuisine",
@@ -113,6 +114,43 @@ export const copy = {
     interimHeading: "We're onboarding chefs in Bangalore right now",
     interimBody: "Message us on WhatsApp with your kitchen name and area to get listed.",
     interimCta: "Message us on WhatsApp",
+  },
+
+  home: {
+    // Location
+    setLocation: "Set your location",
+    useMyLocation: "Use my current location",
+    locating: "Finding you…",
+    locationDenied:
+      "We couldn't get your location — pick your area below and we'll show chefs who deliver there.",
+    nearMe: "Near me",
+    areaFilterPlaceholder: "Search for your area…",
+    noAreas: "No areas match that.",
+
+    // Search
+    searchPlaceholder: "Search for a kitchen, dish, cuisine or area",
+    chefCount: (n: number) => `${n} ${n === 1 ? "chef" : "chefs"}`,
+
+    // Hero
+    heroHeading: "Home-cooked food, near you",
+    heroSub:
+      "Verified home chefs and tiffin services. Order straight on WhatsApp — no commission, no app.",
+    heroLocationPrompt: "Tell us where you are and we'll show who's cooking nearby.",
+
+    // Sections
+    cravingHeading: "What are you craving?",
+    dietaryHeading: "Eating a particular way?",
+    promotedHeading: "Featured kitchens",
+    promotedNote: "Paid placement. Every featured kitchen is verified like any other.",
+    promotedBadge: "Promoted",
+    trendingHeading: "Trending this month",
+    trendingNote: "Most contacted on WhatsApp in the last 30 days",
+    nearYouHeading: "Near you",
+    areasHeading: "Browse by area",
+    citiesHeading: "Cities on Zuby",
+    seeAll: "See all",
+    emptyNearYou:
+      "No kitchens cover your exact spot yet. Try browsing an area below — chefs each set their own delivery radius.",
   },
 
   share: {

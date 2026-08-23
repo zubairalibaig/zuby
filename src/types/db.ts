@@ -84,6 +84,18 @@ export interface AdminMetrics {
   }[];
 }
 
+/** One row of public.search_suggestions() — the home-page omni-search. */
+export type SearchSuggestion = {
+  kind: "chef" | "dish" | "cuisine" | "dietary" | "area";
+  label: string;
+  sublabel: string | null;
+  slug: string;
+  city_slug: string | null;
+  neighbourhood_slug: string | null;
+  result_count: number;
+  rank: number;
+};
+
 /** One row of public.search_chefs() — the geo discovery query. */
 export type SearchChefResult = {
   id: string;
@@ -179,6 +191,8 @@ type ChefRow = {
   verified_by: string | null;
   timings: Json | null;
   pending_edits: Json | null;
+  promoted_until: string | null;
+  promoted_weight: number;
   created_at: string;
   updated_at: string;
 };
@@ -347,9 +361,15 @@ export type Database = {
       chefs: Table<
         ChefRow,
         // These NOT NULL columns carry DB defaults, so they're optional on insert.
-        Insertable<ChefRow, "service_radius_km" | "is_verified" | "status" | "listing_source">,
+        Insertable<
+          ChefRow,
+          "service_radius_km" | "is_verified" | "status" | "listing_source" | "promoted_weight"
+        >,
         Partial<
-          Insertable<ChefRow, "service_radius_km" | "is_verified" | "status" | "listing_source">
+          Insertable<
+            ChefRow,
+            "service_radius_km" | "is_verified" | "status" | "listing_source" | "promoted_weight"
+          >
         >,
         [
           Rel<"chefs_city_id_fkey", ["city_id"], "cities", ["id"]>,
@@ -481,6 +501,22 @@ export type Database = {
       ingest_stats: {
         Args: Record<never, never>;
         Returns: { metric: string; value: number }[];
+      };
+      search_suggestions: {
+        Args: { p_q: string; p_city?: string | null; p_limit?: number };
+        Returns: SearchSuggestion[];
+      };
+      promoted_chefs: {
+        Args: { p_city?: string | null; p_limit?: number };
+        Returns: SearchChefResult[];
+      };
+      trending_chefs: {
+        Args: { p_city?: string | null; p_days?: number; p_limit?: number };
+        Returns: SearchChefResult[];
+      };
+      admin_set_promotion: {
+        Args: { p_chef_id: string; p_days: number; p_weight?: number };
+        Returns: void;
       };
       admin_metrics: {
         Args: { p_weeks?: number };
