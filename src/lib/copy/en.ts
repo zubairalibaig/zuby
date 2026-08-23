@@ -108,24 +108,68 @@ export const copy = {
   },
 
   forChefs: {
-    metaTitle: "List your kitchen on Zuby — free, forever",
-    heading: "List your kitchen on Zuby",
+    metaTitle: "Sell Home-Cooked Food Online — List Free on Zuby",
+    metaDescription:
+      "Sell home-cooked food and run your tiffin service online in Bangalore. List your home kitchen on Zuby free — zero commission, a verified badge, and real customers searching by area, cuisine and dietary need.",
+    heading: "Sell home-cooked food online — free, on Zuby",
     subheading:
-      "Free visibility for home chefs and tiffin services. No commission, ever — you keep 100% of what you earn.",
+      "Zero commission, forever. List your home kitchen or tiffin service and be found by real customers searching by area, cuisine and dietary need — not another noticeboard.",
     points: [
       { title: "Zero commission", body: "We never take a cut of your orders. Not now, not later." },
       {
         title: "You stay in control",
-        body: "Orders and payments happen exactly how they do today, on WhatsApp.",
+        body: "Orders and payments happen exactly how they do today, directly on WhatsApp.",
       },
       {
         title: "Real customers",
-        body: "Buyers searching by location, cuisine and dietary need — not another noticeboard.",
+        body: "Buyers searching Zuby by location, cuisine and dietary need — not another WhatsApp group.",
       },
     ],
-    interimHeading: "We're onboarding chefs in Bangalore right now",
-    interimBody: "Message us on WhatsApp with your kitchen name and area to get listed.",
-    interimCta: "Message us on WhatsApp",
+    howHeading: "How it works",
+    howSteps: [
+      {
+        n: "1",
+        title: "Sign in and create your listing",
+        body: "Kitchen name, area, WhatsApp number, cuisines, dietary tags, FSSAI number, photos and menu — takes about ten minutes.",
+      },
+      {
+        n: "2",
+        title: "A person reviews it",
+        body: "We check your FSSAI registration, photos and details before anything goes public. No auto-approval, ever.",
+      },
+      {
+        n: "3",
+        title: "Go live and get found",
+        body: "Your kitchen appears in location, cuisine and dietary search. Every order still comes to you directly on WhatsApp.",
+      },
+    ],
+    faqHeading: "Questions home chefs ask us",
+    faq: [
+      {
+        q: "How much does it cost to list my kitchen on Zuby?",
+        a: "Nothing. Listing is free and stays free — Zuby takes no commission on any order, now or later. We make money from a separate, clearly-labelled promoted-placement rail, never by taking a cut of what you earn.",
+      },
+      {
+        q: "Do I need an FSSAI license to sell home-cooked food in India?",
+        a: "Yes. Any home food business with turnover under ₹12 lakh a year needs an FSSAI Basic Registration, which gives you a 14-digit number. Zuby asks for that number when you list and an admin checks it before you go live — it's also the single biggest thing that makes buyers trust a listing over an anonymous Instagram page.",
+      },
+      {
+        q: "How is Zuby different from posting on Instagram or a WhatsApp group?",
+        a: "Instagram and WhatsApp groups depend on people already knowing you exist. Zuby is searched by people who don't — by area, cuisine, and dietary need like halal, jain or jhatka — and every listing carries a verified badge those channels can't offer. Orders still land in your WhatsApp exactly as they do today.",
+      },
+      {
+        q: "How long does it take to get verified and go live?",
+        a: "Usually within a day. A person checks your FSSAI number, photos and details, and either approves you, asks for more information, or explains what's missing — you'll always know why if it's not immediate.",
+      },
+      {
+        q: "Does Zuby handle my orders, payments or delivery?",
+        a: "No. Every WhatsApp button opens a chat with you, not a checkout. You agree the order, the price and the delivery directly with the buyer, exactly as you do today — Zuby never touches the money.",
+      },
+      {
+        q: "I only run a rotating weekly tiffin menu, not a fixed menu — can I still list?",
+        a: "Yes — tiffin and thali services are one of the largest categories on Zuby. List your typical rotation, your headcount cutoff and your pricing per meal; buyers looking for a daily tiffin already expect a rotating menu rather than an à la carte one.",
+      },
+    ],
   },
 
   nav: {
@@ -212,6 +256,8 @@ export const copy = {
         body: "One tap opens WhatsApp with a message ready. You agree the order and pay them directly — Zuby takes nothing.",
       },
     ],
+
+    faqHeading: "Common questions",
 
     // Chef CTA
     chefCtaTitle: "Cooking from home? Get found.",

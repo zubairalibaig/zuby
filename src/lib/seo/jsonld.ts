@@ -126,7 +126,7 @@ export function jsonLdScript(data: unknown) {
  * (docs/discoverability-strategy.md §8), so this earns its place even where
  * rich-result eligibility has narrowed.
  */
-export function faqJsonLd(items: { q: string; a: string }[]) {
+export function faqJsonLd(items: readonly { q: string; a: string }[]) {
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",

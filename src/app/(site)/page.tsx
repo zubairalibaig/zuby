@@ -16,6 +16,9 @@ import { CategoryTiles, type Tile } from "@/components/home/CategoryTiles";
 import { ChefRail } from "@/components/home/ChefRail";
 import { SectionHeading } from "@/components/home/SectionHeading";
 import { DiscoveryEmpty } from "@/components/home/DiscoveryEmpty";
+import { JsonLd } from "@/components/directory/JsonLd";
+import { faqJsonLd } from "@/lib/seo/jsonld";
+import { cityFaq } from "@/lib/copy/landing";
 
 export const revalidate = 600;
 
@@ -86,6 +89,7 @@ export default async function Home() {
 
   const primaryCity = (await getActiveCities().catch(() => []))[0];
   const citySlug = primaryCity?.slug ?? "bangalore";
+  const homeFaq = cityFaq(primaryCity?.name ?? "your city");
 
   try {
     [cities, cuisines, dietaryTags, neighbourhoods, promoted, trending, chefCount] =
@@ -217,6 +221,23 @@ export default async function Home() {
               </li>
             ))}
           </ol>
+        </section>
+
+        {/* Rendered as FAQPage JSON-LD too — the direct-answer, one-question-
+            per-heading shape is what answer engines lift most reliably
+            (docs/discoverability-strategy.md §8), and the home page is the
+            highest-traffic surface with none of this before now. */}
+        <section className="mt-14">
+          <JsonLd data={faqJsonLd(homeFaq)} />
+          <SectionHeading title={copy.home.faqHeading} accent="bg-sand-400" />
+          <dl className="mt-6 grid gap-6 sm:grid-cols-2">
+            {homeFaq.map((item) => (
+              <div key={item.q}>
+                <dt className="font-semibold text-sand-900">{item.q}</dt>
+                <dd className="mt-1 text-sm leading-relaxed text-sand-600">{item.a}</dd>
+              </div>
+            ))}
+          </dl>
         </section>
 
         {cities.length > 1 && (
