@@ -38,6 +38,7 @@ const AI_CRAWLERS = [
   "Bytespider",
   "Amazonbot",
   "meta-externalagent",
+  "DuckAssistBot", // DuckDuckGo's AI answer feature
 ];
 
 export default function robots(): MetadataRoute.Robots {
