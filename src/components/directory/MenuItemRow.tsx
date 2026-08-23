@@ -11,9 +11,9 @@ const DIETARY_DOT: Record<string, string> = {
 
 export function MenuItemRow({ item }: { item: ChefMenuItem }) {
   return (
-    <div className="flex gap-3 border-b border-neutral-100 py-4 last:border-0">
+    <div className="flex gap-3 border-b border-sand-100 py-4 last:border-0">
       {item.photoUrl && (
-        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
+        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-sand-100">
           <Image src={item.photoUrl} alt={item.name} fill sizes="64px" className="object-cover" />
         </div>
       )}
@@ -22,11 +22,11 @@ export function MenuItemRow({ item }: { item: ChefMenuItem }) {
           <div className="flex min-w-0 items-center gap-2">
             {item.dietary && (
               <span
-                className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${DIETARY_DOT[item.dietary] ?? "bg-neutral-400"}`}
+                className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${DIETARY_DOT[item.dietary] ?? "bg-sand-400"}`}
                 aria-hidden="true"
               />
             )}
-            <span className="truncate font-medium text-neutral-900">{item.name}</span>
+            <span className="truncate font-medium text-sand-900">{item.name}</span>
             {item.isBestSeller && (
               <span className="shrink-0 rounded-full bg-zuby-50 px-2 py-0.5 text-[11px] font-semibold text-zuby-600">
                 {copy.chef.bestSellerBadge}
@@ -34,19 +34,19 @@ export function MenuItemRow({ item }: { item: ChefMenuItem }) {
             )}
           </div>
           {item.price !== null && (
-            <span className="shrink-0 font-semibold text-neutral-900">
+            <span className="shrink-0 font-semibold text-sand-900">
               {formatPrice(item.price, item.currencyCode)}
               {item.unit && (
-                <span className="ml-1 text-xs font-normal text-neutral-400">/{item.unit}</span>
+                <span className="ml-1 text-xs font-normal text-sand-400">/{item.unit}</span>
               )}
             </span>
           )}
         </div>
         {item.description && (
-          <p className="mt-0.5 line-clamp-2 text-sm text-neutral-500">{item.description}</p>
+          <p className="mt-0.5 line-clamp-2 text-sm text-sand-500">{item.description}</p>
         )}
         {item.nutrition && (
-          <p className="mt-1 text-xs text-neutral-400">
+          <p className="mt-1 text-xs text-sand-400">
             {[
               item.nutrition.calories_kcal !== undefined && `${item.nutrition.calories_kcal} kcal`,
               item.nutrition.protein_g !== undefined && `${item.nutrition.protein_g}g protein`,
@@ -60,7 +60,7 @@ export function MenuItemRow({ item }: { item: ChefMenuItem }) {
           </p>
         )}
         {!item.isAvailable && (
-          <p className="mt-1 text-xs font-medium text-neutral-400">{copy.chef.unavailable}</p>
+          <p className="mt-1 text-xs font-medium text-sand-400">{copy.chef.unavailable}</p>
         )}
       </div>
     </div>

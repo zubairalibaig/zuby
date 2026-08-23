@@ -48,17 +48,17 @@ export default function TrustPage() {
     <main className="mx-auto max-w-3xl px-6 py-12">
       <JsonLd data={faqJsonLd(FAQ)} />
 
-      <h1 className="text-3xl font-bold text-neutral-900">How we verify chefs</h1>
-      <p className="mt-4 text-lg text-neutral-700">
+      <h1 className="text-3xl font-bold text-sand-900">How we verify chefs</h1>
+      <p className="mt-4 text-lg text-sand-700">
         Inviting a stranger&apos;s cooking into your home requires believing two things: that the
         food is safe, and that the cook is who they say they are. Here is exactly what Zuby does
         about that — and, just as importantly, what it doesn&apos;t.
       </p>
 
       <div className="mt-8 space-y-6">
-        <section className="rounded-2xl border border-neutral-200 p-6">
-          <h2 className="text-lg font-bold text-neutral-900">1. Regulatory</h2>
-          <p className="mt-2 text-neutral-600">
+        <section className="rounded-2xl border border-sand-200 p-6">
+          <h2 className="text-lg font-bold text-sand-900">1. Regulatory</h2>
+          <p className="mt-2 text-sand-600">
             Every India-based chef displays their FSSAI registration number — the 14-digit number
             India requires for home food businesses. It&apos;s captured at signup, shown publicly on
             the listing, and checked by an admin before the chef goes live. Change the number and
@@ -66,9 +66,9 @@ export default function TrustPage() {
           </p>
         </section>
 
-        <section className="rounded-2xl border border-neutral-200 p-6">
-          <h2 className="text-lg font-bold text-neutral-900">2. Human review</h2>
-          <p className="mt-2 text-neutral-600">
+        <section className="rounded-2xl border border-sand-200 p-6">
+          <h2 className="text-lg font-bold text-sand-900">2. Human review</h2>
+          <p className="mt-2 text-sand-600">
             No listing is published automatically. Each one sits in a queue until a person has
             looked at the photos, the area, the contact details and the FSSAI number, and either
             approved it, rejected it, or asked the chef for more. Who approved which listing, and
@@ -76,9 +76,9 @@ export default function TrustPage() {
           </p>
         </section>
 
-        <section className="rounded-2xl border border-neutral-200 p-6">
-          <h2 className="text-lg font-bold text-neutral-900">3. Ongoing</h2>
-          <p className="mt-2 text-neutral-600">
+        <section className="rounded-2xl border border-sand-200 p-6">
+          <h2 className="text-lg font-bold text-sand-900">3. Ongoing</h2>
+          <p className="mt-2 text-sand-600">
             Verification isn&apos;t a one-time gate. A chef who changes their name, address, FSSAI
             number or phone number goes back through review, and their public page keeps showing the
             last approved details until the change is cleared. Listings can be suspended if what
@@ -96,13 +96,13 @@ export default function TrustPage() {
         </section>
       </div>
 
-      <section className="mt-12 border-t border-neutral-200 pt-6">
-        <h2 className="text-xl font-bold text-neutral-900">Common questions</h2>
+      <section className="mt-12 border-t border-sand-200 pt-6">
+        <h2 className="text-xl font-bold text-sand-900">Common questions</h2>
         <dl className="mt-4 space-y-5">
           {FAQ.map((item) => (
             <div key={item.q}>
-              <dt className="font-semibold text-neutral-900">{item.q}</dt>
-              <dd className="mt-1 text-neutral-600">{item.a}</dd>
+              <dt className="font-semibold text-sand-900">{item.q}</dt>
+              <dd className="mt-1 text-sand-600">{item.a}</dd>
             </div>
           ))}
         </dl>

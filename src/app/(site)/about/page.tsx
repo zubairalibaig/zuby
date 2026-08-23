@@ -13,16 +13,16 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
-      <h1 className="text-3xl font-bold text-neutral-900">About Zuby</h1>
+      <h1 className="text-3xl font-bold text-sand-900">About Zuby</h1>
 
-      <div className="mt-6 space-y-5 text-neutral-700">
+      <div className="mt-6 space-y-5 text-sand-700">
         <p className="text-lg">
           Zuby is a searchable directory of verified home chefs and tiffin services. Think of it as
           a way to find the people already cooking brilliant food near you — and to contact them
           directly, without an app, an account or a commission in between.
         </p>
 
-        <h2 className="pt-4 text-xl font-bold text-neutral-900">Why it exists</h2>
+        <h2 className="pt-4 text-xl font-bold text-sand-900">Why it exists</h2>
         <p>
           Home-cooked food in Indian cities is enormous and almost entirely invisible. There are
           tens of thousands of home cooks — mostly women, often exceptional — running small
@@ -42,7 +42,7 @@ export default function AboutPage() {
           to reach the cook is valuable on its own.
         </p>
 
-        <h2 className="pt-4 text-xl font-bold text-neutral-900">How it works</h2>
+        <h2 className="pt-4 text-xl font-bold text-sand-900">How it works</h2>
         <p>
           You search by where you are and what you want. Results are filtered by actual distance —
           and by each chef&apos;s own delivery radius, so a cook who serves 5 km won&apos;t show up
@@ -55,7 +55,7 @@ export default function AboutPage() {
           directly with them. Zuby doesn&apos;t take the order, hold the money or arrange delivery.
         </p>
 
-        <h2 className="pt-4 text-xl font-bold text-neutral-900">What it costs</h2>
+        <h2 className="pt-4 text-xl font-bold text-sand-900">What it costs</h2>
         <p>
           Nothing, to anyone. Chefs pay no commission and no listing fee. Buyers pay the chef
           directly. Zuby makes no money on any order placed through it today. If that changes, it
@@ -63,7 +63,7 @@ export default function AboutPage() {
           cut of what they already earn.
         </p>
 
-        <h2 className="pt-4 text-xl font-bold text-neutral-900">Where it runs</h2>
+        <h2 className="pt-4 text-xl font-bold text-sand-900">Where it runs</h2>
         <p>
           Bangalore first, and properly, before anywhere else. Zuby is built to handle multiple
           cities and countries — prices carry currency codes, cities and countries are real entities
@@ -76,7 +76,7 @@ export default function AboutPage() {
       <div className="mt-10 flex flex-wrap gap-3">
         <Link
           href="/trust"
-          className="rounded-full border border-neutral-300 px-5 py-2.5 text-sm font-semibold text-neutral-700 hover:border-zuby-400 hover:text-zuby-600"
+          className="rounded-full border border-sand-300 px-5 py-2.5 text-sm font-semibold text-sand-700 hover:border-zuby-400 hover:text-zuby-600"
         >
           How we verify chefs
         </Link>

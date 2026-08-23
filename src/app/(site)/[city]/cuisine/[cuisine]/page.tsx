@@ -96,12 +96,12 @@ export default async function CuisinePage({ params }: CuisinePageProps) {
 
       <Breadcrumbs crumbs={crumbs} />
 
-      <h1 className="mt-4 text-3xl font-bold text-neutral-900">
+      <h1 className="mt-4 text-3xl font-bold text-sand-900">
         {copy.cuisine.heading(cuisine.name, city.name)}
       </h1>
 
       {chefs.length === 0 ? (
-        <div className="mt-8 rounded-2xl border border-neutral-200 p-8 text-center text-neutral-500">
+        <div className="mt-8 rounded-2xl border border-sand-200 p-8 text-center text-sand-500">
           {copy.cuisine.empty}
         </div>
       ) : (

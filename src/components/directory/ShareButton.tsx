@@ -47,14 +47,14 @@ export function ShareButton({ kitchenName, path }: Props) {
         href={`https://wa.me/?text=${encodeURIComponent(message)}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1.5 rounded-full border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:border-[#25D366] hover:text-[#128C7E]"
+        className="inline-flex items-center gap-1.5 rounded-full border border-sand-300 px-4 py-2 text-sm font-medium text-sand-700 hover:border-[#25D366] hover:text-[#128C7E]"
       >
         {copy.share.whatsappCta}
       </a>
       <button
         type="button"
         onClick={nativeShare}
-        className="inline-flex items-center gap-1.5 rounded-full border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:border-zuby-400 hover:text-zuby-600"
+        className="inline-flex items-center gap-1.5 rounded-full border border-sand-300 px-4 py-2 text-sm font-medium text-sand-700 hover:border-zuby-400 hover:text-zuby-600"
       >
         {copied ? copy.share.copied : copy.share.otherCta}
       </button>

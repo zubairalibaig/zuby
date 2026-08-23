@@ -144,8 +144,8 @@ export function OmniSearch({
 
   return (
     <div ref={boxRef} className="relative w-full">
-      <div className="flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 py-3 shadow-sm focus-within:border-zuby-400">
-        <span className="text-neutral-400" aria-hidden>
+      <div className="flex items-center gap-3 rounded-full border-2 border-sand-200 bg-white px-5 py-3.5 transition focus-within:border-zuby-400 focus-within:shadow-[0_0_0_4px_rgba(232,89,12,0.10)]">
+        <span className="text-lg text-sand-400" aria-hidden>
           🔍
         </span>
         <input
@@ -159,16 +159,16 @@ export function OmniSearch({
           role="combobox"
           aria-expanded={open}
           aria-controls="zuby-suggestions"
-          className="w-full bg-transparent text-base text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
+          className="w-full bg-transparent text-base text-sand-900 placeholder:text-sand-400 focus:outline-none"
         />
-        {loading && <span className="text-xs text-neutral-400">…</span>}
+        {loading && <span className="text-xs text-sand-400">…</span>}
       </div>
 
       {open && results.length > 0 && (
         <ul
           id="zuby-suggestions"
           role="listbox"
-          className="absolute z-30 mt-2 max-h-96 w-full overflow-y-auto rounded-2xl border border-neutral-200 bg-white p-1.5 shadow-lg"
+          className="absolute z-30 mt-2 max-h-96 w-full overflow-y-auto rounded-2xl border border-sand-200 bg-white p-1.5 shadow-lg"
         >
           {results.map((s, i) => (
             <li key={`${s.kind}-${s.slug}-${s.label}`}>
@@ -179,22 +179,22 @@ export function OmniSearch({
                 onMouseEnter={() => setActive(i)}
                 onClick={() => go(s)}
                 className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left ${
-                  i === active ? "bg-neutral-100" : "hover:bg-neutral-50"
+                  i === active ? "bg-sand-100" : "hover:bg-sand-50"
                 }`}
               >
                 <span className="text-lg" aria-hidden>
                   {KIND_ICON[s.kind]}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-neutral-900">
+                  <span className="block truncate text-sm font-medium text-sand-900">
                     {s.label}
                   </span>
                   {s.sublabel && (
-                    <span className="block truncate text-xs text-neutral-500">{s.sublabel}</span>
+                    <span className="block truncate text-xs text-sand-500">{s.sublabel}</span>
                   )}
                 </span>
                 {s.kind !== "chef" && s.result_count > 0 && (
-                  <span className="shrink-0 text-xs text-neutral-400">
+                  <span className="shrink-0 text-xs text-sand-400">
                     {copy.home.chefCount(s.result_count)}
                   </span>
                 )}

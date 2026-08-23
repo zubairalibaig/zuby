@@ -49,9 +49,9 @@ export function FilterBar({ cuisines, dietaryTags }: FilterBarProps) {
   };
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-neutral-200 p-4">
+    <div className="flex flex-col gap-4 rounded-2xl border border-sand-200 p-4">
       <div>
-        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-sand-500">
           {copy.search.radiusLabel}
         </p>
         <div className="flex gap-2">
@@ -64,7 +64,7 @@ export function FilterBar({ cuisines, dietaryTags }: FilterBarProps) {
                 "rounded-full px-3 py-1.5 text-sm font-medium ring-1 ring-inset transition",
                 currentRadius === km
                   ? "bg-zuby-500 text-white ring-zuby-500"
-                  : "bg-white text-neutral-700 ring-neutral-300 hover:ring-zuby-500/50",
+                  : "bg-white text-sand-700 ring-sand-300 hover:ring-zuby-500/50",
               )}
             >
               {km} km
@@ -74,7 +74,7 @@ export function FilterBar({ cuisines, dietaryTags }: FilterBarProps) {
       </div>
 
       <div>
-        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-sand-500">
           {copy.search.dietaryLabel}
         </p>
         <div className="flex flex-wrap gap-2">
@@ -87,7 +87,7 @@ export function FilterBar({ cuisines, dietaryTags }: FilterBarProps) {
                 "rounded-full px-3 py-1.5 text-sm font-medium ring-1 ring-inset transition",
                 currentTags.has(tag.slug)
                   ? "bg-zuby-500 text-white ring-zuby-500"
-                  : "bg-white text-neutral-700 ring-neutral-300 hover:ring-zuby-500/50",
+                  : "bg-white text-sand-700 ring-sand-300 hover:ring-zuby-500/50",
               )}
             >
               {tag.name}
@@ -97,7 +97,7 @@ export function FilterBar({ cuisines, dietaryTags }: FilterBarProps) {
       </div>
 
       <div>
-        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-sand-500">
           {copy.search.cuisineLabel}
         </p>
         <div className="flex flex-wrap gap-2">
@@ -110,7 +110,7 @@ export function FilterBar({ cuisines, dietaryTags }: FilterBarProps) {
                 "rounded-full px-3 py-1.5 text-sm font-medium ring-1 ring-inset transition",
                 currentCuisines.has(cuisine.slug)
                   ? "bg-zuby-500 text-white ring-zuby-500"
-                  : "bg-white text-neutral-700 ring-neutral-300 hover:ring-zuby-500/50",
+                  : "bg-white text-sand-700 ring-sand-300 hover:ring-zuby-500/50",
               )}
             >
               {cuisine.name}
@@ -119,12 +119,12 @@ export function FilterBar({ cuisines, dietaryTags }: FilterBarProps) {
         </div>
       </div>
 
-      <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
+      <label className="flex items-center gap-2 text-sm font-medium text-sand-700">
         <input
           type="checkbox"
           checked={verifiedOnly}
           onChange={(e) => update((params) => params.set("verified", e.target.checked ? "1" : "0"))}
-          className="h-4 w-4 rounded border-neutral-300 text-zuby-500 focus:ring-zuby-500"
+          className="h-4 w-4 rounded border-sand-300 text-zuby-500 focus:ring-zuby-500"
         />
         {copy.search.verifiedOnlyLabel}
       </label>

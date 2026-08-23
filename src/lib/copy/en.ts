@@ -116,6 +116,24 @@ export const copy = {
     interimCta: "Message us on WhatsApp",
   },
 
+  nav: {
+    about: "About",
+    howWeVerify: "How we verify",
+    listKitchen: "List your kitchen",
+  },
+
+  footer: {
+    blurb:
+      "A directory of verified home chefs and tiffin services. Find home-cooked food near you and order straight on WhatsApp — no commission, no app.",
+    cuisinesHeading: "Cuisines",
+    dietaryHeading: "Dietary",
+    zubyHeading: "Zuby",
+    citiesHeading: "Cities",
+    chefLogin: "Chef sign in",
+    legal: "Zuby is a directory. Orders and payments happen directly with the chef.",
+    madeIn: "Made in Bangalore 🇮🇳",
+  },
+
   home: {
     // Location
     setLocation: "Set your location",
@@ -133,9 +151,59 @@ export const copy = {
 
     // Hero
     heroHeading: "Home-cooked food, near you",
+    heroLine1: "Real home cooking,",
+    heroLine2: "from someone near you.",
     heroSub:
-      "Verified home chefs and tiffin services. Order straight on WhatsApp — no commission, no app.",
+      "Verified home chefs and tiffin services. Find them by area, cuisine or how you eat — then order straight on WhatsApp.",
     heroLocationPrompt: "Tell us where you are and we'll show who's cooking nearby.",
+    liveBadge: (n: number) => `${n} verified ${n === 1 ? "kitchen" : "kitchens"} in Bangalore`,
+
+    // Trust band
+    trustPoints: [
+      {
+        icon: "✅",
+        title: "A person checks every kitchen",
+        body: "Nothing appears on Zuby until someone has reviewed the FSSAI registration, the photos and the address. No exceptions, no auto-approval.",
+      },
+      {
+        icon: "🌱",
+        title: "Halal, jain and veg are filters",
+        body: "Not footnotes buried in a description. Filter the whole directory by halal, jhatka, jain, pure veg or egg-free, and combine it with distance.",
+      },
+      {
+        icon: "💬",
+        title: "You order on WhatsApp",
+        body: "No app, no account, no cart. Tap once and you're chatting with the cook — exactly how home food already gets ordered.",
+      },
+    ],
+    trustCta: "How we verify chefs",
+
+    // How it works
+    howHeading: "How Zuby works",
+    howSteps: [
+      {
+        n: "1",
+        title: "Say where you are",
+        body: "Share your location or pick your area. We only show kitchens whose own delivery radius actually reaches you.",
+      },
+      {
+        n: "2",
+        title: "Find your kind of food",
+        body: "Search a dish, a cuisine or a dietary need. Every kitchen shows its menu, prices and FSSAI number up front.",
+      },
+      {
+        n: "3",
+        title: "Message the cook",
+        body: "One tap opens WhatsApp with a message ready. You agree the order and pay them directly — Zuby takes nothing.",
+      },
+    ],
+
+    // Chef CTA
+    chefCtaTitle: "Cooking from home? Get found.",
+    chefCtaBody:
+      "Free listing, zero commission, and you keep every rupee your customers pay you. Most kitchens are live within a day.",
+    chefCtaButton: "List your kitchen — free",
+    chefCtaSecondary: "Already listed? Claim it",
 
     // Sections
     cravingHeading: "What are you craving?",
@@ -146,9 +214,13 @@ export const copy = {
     trendingHeading: "Trending this month",
     trendingNote: "Most contacted on WhatsApp in the last 30 days",
     nearYouHeading: "Near you",
+    showChefsNear: (area: string) => `Show all kitchens near ${area}`,
     areasHeading: "Browse by area",
     citiesHeading: "Cities on Zuby",
     seeAll: "See all",
+    emptyHeading: "Kitchens are coming to your area",
+    emptyBody:
+      "We're verifying home chefs in Bangalore right now — every one checked by a person before it appears here. Know someone who cooks? Send them our way.",
     emptyNearYou:
       "No kitchens cover your exact spot yet. Try browsing an area below — chefs each set their own delivery radius.",
   },

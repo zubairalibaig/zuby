@@ -90,13 +90,13 @@ export default async function NeighbourhoodPage({ params }: NeighbourhoodPagePro
 
       <Breadcrumbs crumbs={crumbs} />
 
-      <h1 className="mt-4 text-3xl font-bold text-neutral-900">
+      <h1 className="mt-4 text-3xl font-bold text-sand-900">
         {copy.neighbourhood.heading(neighbourhood.name)}
       </h1>
 
       {chefs.length === 0 ? (
-        <div className="mt-8 rounded-2xl border border-neutral-200 p-8 text-center">
-          <p className="text-neutral-500">{copy.neighbourhood.empty}</p>
+        <div className="mt-8 rounded-2xl border border-sand-200 p-8 text-center">
+          <p className="text-sand-500">{copy.neighbourhood.empty}</p>
           <Link href="/search" className="mt-3 inline-block text-sm font-medium text-zuby-600">
             {copy.neighbourhood.searchNearbyLink}
           </Link>

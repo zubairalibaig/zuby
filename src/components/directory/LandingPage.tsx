@@ -64,19 +64,19 @@ export function LandingPage({
 
       <Breadcrumbs crumbs={crumbs} />
 
-      <h1 className="mt-4 text-3xl font-bold text-neutral-900">{h1}</h1>
+      <h1 className="mt-4 text-3xl font-bold text-sand-900">{h1}</h1>
 
       {intro.length > 0 && (
         <div className="mt-4 max-w-3xl space-y-3">
           {intro.map((para) => (
-            <p key={para.slice(0, 40)} className="text-neutral-600">
+            <p key={para.slice(0, 40)} className="text-sand-600">
               {para}
             </p>
           ))}
         </div>
       )}
 
-      <p className="mt-4 max-w-3xl text-sm text-neutral-500">{landingCopy.verifiedNote}</p>
+      <p className="mt-4 max-w-3xl text-sm text-sand-500">{landingCopy.verifiedNote}</p>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
         {chefs.map((chef) => (
@@ -85,8 +85,8 @@ export function LandingPage({
       </div>
 
       {related.length > 0 && (
-        <section className="mt-12 border-t border-neutral-200 pt-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+        <section className="mt-12 border-t border-sand-200 pt-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-sand-500">
             {landingCopy.relatedHeading}
           </h2>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -94,7 +94,7 @@ export function LandingPage({
               <Link
                 key={link.href}
                 href={link.href}
-                className="rounded-full border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:border-zuby-400 hover:text-zuby-600"
+                className="rounded-full border border-sand-300 px-3 py-1.5 text-sm text-sand-600 hover:border-zuby-400 hover:text-zuby-600"
               >
                 {link.label}
               </Link>
@@ -104,13 +104,13 @@ export function LandingPage({
       )}
 
       {faq && faq.length > 0 && (
-        <section className="mt-12 border-t border-neutral-200 pt-6">
-          <h2 className="text-xl font-bold text-neutral-900">{landingCopy.faqHeading}</h2>
+        <section className="mt-12 border-t border-sand-200 pt-6">
+          <h2 className="text-xl font-bold text-sand-900">{landingCopy.faqHeading}</h2>
           <dl className="mt-4 max-w-3xl space-y-5">
             {faq.map((item) => (
               <div key={item.q}>
-                <dt className="font-semibold text-neutral-900">{item.q}</dt>
-                <dd className="mt-1 text-neutral-600">{item.a}</dd>
+                <dt className="font-semibold text-sand-900">{item.q}</dt>
+                <dd className="mt-1 text-sand-600">{item.a}</dd>
               </div>
             ))}
           </dl>

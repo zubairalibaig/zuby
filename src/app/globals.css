@@ -1,13 +1,101 @@
 @import "tailwindcss";
 
+/**
+ * Zuby design tokens.
+ *
+ * The palette is built for food, not for a dashboard. Two decisions carry most
+ * of the character:
+ *
+ *  1. Warm neutrals ("sand") instead of Tailwind's cold greys. A directory of
+ *     home kitchens rendered in #737373 reads clinical; the same layout in warm
+ *     stone reads like somewhere you'd eat. This is the single highest-leverage
+ *     change in the whole system.
+ *  2. A second accent — "leaf" green — reserved for trust and verification.
+ *     Orange sells appetite; green says safe. A food-trust product needs both,
+ *     and using one colour for both muddles the message.
+ */
 @theme {
-  --color-zuby-50: #fff8f0;
-  --color-zuby-100: #ffedd8;
+  /* Brand — warm, appetising orange. */
+  --color-zuby-50: #fff7ed;
+  --color-zuby-100: #ffedd5;
+  --color-zuby-200: #fed7aa;
+  --color-zuby-300: #fdba74;
+  --color-zuby-400: #fb923c;
   --color-zuby-500: #e8590c;
   --color-zuby-600: #d9480f;
+  --color-zuby-700: #b23a0c;
+  --color-zuby-800: #8a2f0c;
   --color-zuby-900: #5c2200;
+  --color-zuby-950: #3d1600;
+
+  /* Trust / verified. Deep, calm green — never used decoratively. */
+  --color-leaf-50: #f0fdf4;
+  --color-leaf-100: #dcfce7;
+  --color-leaf-200: #bbf7d0;
+  --color-leaf-500: #16a34a;
+  --color-leaf-600: #15803d;
+  --color-leaf-700: #166534;
+  --color-leaf-900: #14532d;
+
+  /* Warm neutrals. Used everywhere Tailwind's neutral-* would have been. */
+  --color-sand-50: #fdfcfb;
+  --color-sand-100: #f7f4f0;
+  --color-sand-200: #ece6df;
+  --color-sand-300: #ddd4c9;
+  --color-sand-400: #b8ab9c;
+  --color-sand-500: #918475;
+  --color-sand-600: #6f6558;
+  --color-sand-700: #544c42;
+  --color-sand-800: #38322b;
+  --color-sand-900: #211d18;
+
+  /* Accent for highlights and the "trending" motif. */
+  --color-saffron-100: #fef3c7;
+  --color-saffron-300: #fcd34d;
+  --color-saffron-500: #f59e0b;
+  --color-saffron-700: #b45309;
+
+  /* Softer, larger radii than Tailwind's defaults — friendlier, less corporate. */
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.25rem;
+  --radius-3xl: 1.75rem;
 }
 
 body {
-  @apply bg-white text-neutral-900 antialiased;
+  @apply bg-sand-50 text-sand-900 antialiased;
+}
+
+/**
+ * The hero's warm field. A layered radial gradient rather than a flat block —
+ * flat colour at this scale looks like an error state, gradients read as depth.
+ */
+.hero-warm {
+  background:
+    radial-gradient(ellipse 80% 60% at 15% 0%, #ffe8d1 0%, transparent 60%),
+    radial-gradient(ellipse 70% 50% at 90% 10%, #ffd9c0 0%, transparent 55%),
+    linear-gradient(180deg, #fff7ed 0%, #fdfcfb 100%);
+}
+
+/** Section band used behind the trust strip and the chef CTA. */
+.band-warm {
+  background: linear-gradient(135deg, #5c2200 0%, #8a2f0c 50%, #b23a0c 100%);
+}
+
+/** Horizontal scrollers: hide the bar without losing the scroll. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/** Respect users who don't want motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

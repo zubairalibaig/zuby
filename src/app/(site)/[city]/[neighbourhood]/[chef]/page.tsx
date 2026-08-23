@@ -146,7 +146,7 @@ export default async function ChefPage({ params }: ChefPageProps) {
       )}
 
       <div className="mt-6 flex items-start gap-4">
-        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-neutral-100 sm:h-28 sm:w-28">
+        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-sand-100 sm:h-28 sm:w-28">
           {chef.photoUrl ? (
             <Image
               src={chef.photoUrl}
@@ -157,17 +157,17 @@ export default async function ChefPage({ params }: ChefPageProps) {
               priority
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-3xl text-neutral-300">
+            <div className="flex h-full w-full items-center justify-center text-3xl text-sand-300">
               🍱
             </div>
           )}
         </div>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold text-neutral-900">{chef.kitchenName}</h1>
+            <h1 className="text-2xl font-bold text-sand-900">{chef.kitchenName}</h1>
             {chef.isVerified && <VerifiedBadge />}
           </div>
-          <p className="mt-1 text-neutral-500">
+          <p className="mt-1 text-sand-500">
             {chef.addressArea ?? chef.neighbourhoodName}
             {approxGeo && (
               <>
@@ -177,14 +177,14 @@ export default async function ChefPage({ params }: ChefPageProps) {
             )}
           </p>
           {chef.fssaiNumber && (
-            <p className="mt-1 text-xs text-neutral-400">
+            <p className="mt-1 text-xs text-sand-400">
               {copy.chef.fssaiLabel}: {chef.fssaiNumber}
             </p>
           )}
         </div>
       </div>
 
-      {chef.bio && <p className="mt-4 text-neutral-600">{chef.bio}</p>}
+      {chef.bio && <p className="mt-4 text-sand-600">{chef.bio}</p>}
 
       {(chef.cuisines.length > 0 || chef.dietaryTags.length > 0) && (
         <div className="mt-4 flex flex-wrap gap-1.5">
@@ -194,7 +194,7 @@ export default async function ChefPage({ params }: ChefPageProps) {
         </div>
       )}
       {chef.cuisines.length > 0 && (
-        <p className="mt-2 text-sm text-neutral-500">
+        <p className="mt-2 text-sm text-sand-500">
           {copy.chef.cuisinesLabel}: {chef.cuisines.map((c) => c.name).join(", ")}
         </p>
       )}
@@ -205,14 +205,14 @@ export default async function ChefPage({ params }: ChefPageProps) {
 
       {chef.timings && (
         <section className="mt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-sand-500">
             {copy.chef.timingsHeading}
           </h2>
-          <p className="mt-2 font-medium text-neutral-900">{describeToday(chef.timings)}</p>
-          <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-neutral-500 sm:grid-cols-4">
+          <p className="mt-2 font-medium text-sand-900">{describeToday(chef.timings)}</p>
+          <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-sand-500 sm:grid-cols-4">
             {weeklySchedule.map((d) => (
               <div key={d.day} className="flex justify-between gap-2">
-                <dt className="font-medium text-neutral-600">{d.day}</dt>
+                <dt className="font-medium text-sand-600">{d.day}</dt>
                 <dd>{d.text}</dd>
               </div>
             ))}
@@ -222,14 +222,14 @@ export default async function ChefPage({ params }: ChefPageProps) {
 
       {chef.photos.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-sand-500">
             {copy.chef.photosHeading}
           </h2>
           <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
             {chef.photos.map((photo) => (
               <div
                 key={photo.url}
-                className="relative aspect-square overflow-hidden rounded-lg bg-neutral-100"
+                className="relative aspect-square overflow-hidden rounded-lg bg-sand-100"
               >
                 <Image
                   src={photo.url}
@@ -246,10 +246,10 @@ export default async function ChefPage({ params }: ChefPageProps) {
 
       {chef.menuItems.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-sand-500">
             {copy.chef.menuHeading}
           </h2>
-          <div className="mt-2 divide-y divide-neutral-100">
+          <div className="mt-2 divide-y divide-sand-100">
             {[...bestSellers, ...restOfMenu].map((item) => (
               <MenuItemRow key={item.id} item={item} />
             ))}
@@ -259,8 +259,8 @@ export default async function ChefPage({ params }: ChefPageProps) {
 
       {/* Share — WhatsApp forwards are the native distribution channel for
           home food, and the only way we get any attribution on them. */}
-      <section className="mt-10 border-t border-neutral-200 pt-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+      <section className="mt-10 border-t border-sand-200 pt-6">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-sand-500">
           {copy.share.heading}
         </h2>
         <div className="mt-3">
@@ -270,14 +270,14 @@ export default async function ChefPage({ params }: ChefPageProps) {
 
       {/* Cross-links keep every chef page connected to the wider grid, so no
           profile is an orphan and equity flows both ways. */}
-      <nav className="mt-8 border-t border-neutral-200 pt-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+      <nav className="mt-8 border-t border-sand-200 pt-6">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-sand-500">
           Explore nearby
         </h2>
         <div className="mt-3 flex flex-wrap gap-2">
           <Link
             href={`/${chef.citySlug}/${chef.neighbourhoodSlug}`}
-            className="rounded-full border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:border-zuby-400 hover:text-zuby-600"
+            className="rounded-full border border-sand-300 px-3 py-1.5 text-sm text-sand-600 hover:border-zuby-400 hover:text-zuby-600"
           >
             All chefs in {chef.neighbourhoodName ?? chef.neighbourhoodSlug}
           </Link>
@@ -285,7 +285,7 @@ export default async function ChefPage({ params }: ChefPageProps) {
             <Link
               key={cuisine.slug}
               href={`/${chef.citySlug}/${chef.neighbourhoodSlug}/cuisine/${cuisine.slug}`}
-              className="rounded-full border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:border-zuby-400 hover:text-zuby-600"
+              className="rounded-full border border-sand-300 px-3 py-1.5 text-sm text-sand-600 hover:border-zuby-400 hover:text-zuby-600"
             >
               {cuisine.name} in {chef.neighbourhoodName ?? chef.neighbourhoodSlug}
             </Link>
@@ -294,7 +294,7 @@ export default async function ChefPage({ params }: ChefPageProps) {
             <Link
               key={tag.slug}
               href={`/${chef.citySlug}/diet/${tag.slug}`}
-              className="rounded-full border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:border-zuby-400 hover:text-zuby-600"
+              className="rounded-full border border-sand-300 px-3 py-1.5 text-sm text-sand-600 hover:border-zuby-400 hover:text-zuby-600"
             >
               {tag.name} in {chef.cityName}
             </Link>

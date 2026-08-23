@@ -86,7 +86,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
-      <h1 className="text-2xl font-bold text-neutral-900">
+      <h1 className="text-2xl font-bold text-sand-900">
         {sp.q ? copy.search.headingFor(sp.q) : copy.search.heading}
       </h1>
 
@@ -101,11 +101,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           <FilterBar cuisines={cuisines} dietaryTags={dietaryTags} />
 
           <div>
-            <p className="mb-4 text-sm text-neutral-500">
-              {copy.search.resultCount(results.length)}
-            </p>
+            <p className="mb-4 text-sm text-sand-500">{copy.search.resultCount(results.length)}</p>
             {results.length === 0 ? (
-              <div className="rounded-2xl border border-neutral-200 p-8 text-center text-neutral-500">
+              <div className="rounded-2xl border border-sand-200 p-8 text-center text-sand-500">
                 {copy.search.empty}
               </div>
             ) : (

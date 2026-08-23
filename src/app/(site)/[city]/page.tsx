@@ -98,10 +98,10 @@ export default async function CityPage({ params }: CityPageProps) {
         ]}
       />
 
-      <h1 className="mt-4 text-3xl font-bold text-neutral-900">
+      <h1 className="mt-4 text-3xl font-bold text-sand-900">
         {copy.city.featuredHeading} {city.name}
       </h1>
-      <p className="mt-1 text-neutral-500">{copy.city.chefCountSuffix(chefCount)}</p>
+      <p className="mt-1 text-sand-500">{copy.city.chefCountSuffix(chefCount)}</p>
 
       <div className="mt-6">
         <Link
@@ -114,7 +114,7 @@ export default async function CityPage({ params }: CityPageProps) {
 
       {neighbourhoods.length > 0 && (
         <section className="mt-10">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-sand-500">
             {copy.city.neighbourhoodsHeading}
           </h2>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -122,7 +122,7 @@ export default async function CityPage({ params }: CityPageProps) {
               <Link
                 key={n.slug}
                 href={`/${city.slug}/${n.slug}`}
-                className="rounded-full border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:border-zuby-500/50 hover:text-zuby-600"
+                className="rounded-full border border-sand-200 px-4 py-2 text-sm font-medium text-sand-700 hover:border-zuby-500/50 hover:text-zuby-600"
               >
                 {n.name}
               </Link>
@@ -133,7 +133,7 @@ export default async function CityPage({ params }: CityPageProps) {
 
       {cuisines.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-sand-500">
             {copy.city.cuisinesHeading}
           </h2>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -141,7 +141,7 @@ export default async function CityPage({ params }: CityPageProps) {
               <Link
                 key={cuisine.slug}
                 href={`/${city.slug}/cuisine/${cuisine.slug}`}
-                className="rounded-full border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:border-zuby-500/50 hover:text-zuby-600"
+                className="rounded-full border border-sand-200 px-4 py-2 text-sm font-medium text-sand-700 hover:border-zuby-500/50 hover:text-zuby-600"
               >
                 {cuisine.name}
               </Link>
@@ -152,7 +152,7 @@ export default async function CityPage({ params }: CityPageProps) {
 
       {featuredVerified.length > 0 && (
         <section className="mt-10">
-          <h2 className="text-lg font-semibold text-neutral-900">
+          <h2 className="text-lg font-semibold text-sand-900">
             {copy.city.featuredHeading} {city.name}
           </h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">

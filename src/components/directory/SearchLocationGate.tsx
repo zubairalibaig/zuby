@@ -42,7 +42,7 @@ export function SearchLocationGate({ neighbourhoods }: { neighbourhoods: Neighbo
 
   if (status === "locating") {
     return (
-      <div className="rounded-2xl border border-neutral-200 p-8 text-center text-neutral-500">
+      <div className="rounded-2xl border border-sand-200 p-8 text-center text-sand-500">
         {copy.search.loading}
       </div>
     );
@@ -51,15 +51,15 @@ export function SearchLocationGate({ neighbourhoods }: { neighbourhoods: Neighbo
   if (status === "done") return null;
 
   return (
-    <div className="rounded-2xl border border-neutral-200 p-6">
-      <h2 className="font-semibold text-neutral-900">{copy.search.locationDeniedHeading}</h2>
-      <p className="mt-1 text-sm text-neutral-500">{copy.search.locationDeniedBody}</p>
+    <div className="rounded-2xl border border-sand-200 p-6">
+      <h2 className="font-semibold text-sand-900">{copy.search.locationDeniedHeading}</h2>
+      <p className="mt-1 text-sm text-sand-500">{copy.search.locationDeniedBody}</p>
       <ul className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
         {neighbourhoods.map((n) => (
           <li key={n.slug}>
             <Link
               href={`/${n.citySlug}/${n.slug}`}
-              className="block rounded-lg border border-neutral-200 px-3 py-2 text-center text-sm font-medium text-neutral-700 hover:border-zuby-500/50 hover:text-zuby-600"
+              className="block rounded-lg border border-sand-200 px-3 py-2 text-center text-sm font-medium text-sand-700 hover:border-zuby-500/50 hover:text-zuby-600"
             >
               {n.name}
             </Link>

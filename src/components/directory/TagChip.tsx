@@ -14,7 +14,7 @@ const TAG_STYLES: Record<string, string> = {
   healthy: "bg-sky-50 text-sky-700 ring-sky-600/20",
 };
 
-const DEFAULT_STYLE = "bg-neutral-100 text-neutral-700 ring-neutral-500/20";
+const DEFAULT_STYLE = "bg-sand-100 text-sand-700 ring-sand-500/20";
 
 export function TagChip({ slug, name }: { slug: string; name: string }) {
   return (

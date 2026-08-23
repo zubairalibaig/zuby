@@ -99,11 +99,11 @@ export function LocationPicker({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex max-w-[14rem] items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-700 transition hover:border-zuby-400 sm:max-w-none"
+        className="flex max-w-full items-center gap-2 rounded-full border-2 border-zuby-200 bg-zuby-50 px-4 py-3.5 text-sm font-semibold text-zuby-800 transition hover:border-zuby-300 hover:bg-zuby-100 sm:max-w-[15rem]"
       >
         <span aria-hidden>📍</span>
         <span className="truncate">{value?.label ?? copy.home.setLocation}</span>
-        <span className="text-neutral-400" aria-hidden>
+        <span className="text-sand-400" aria-hidden>
           ▾
         </span>
       </button>
@@ -117,7 +117,7 @@ export function LocationPicker({
             onClick={() => setOpen(false)}
             className="fixed inset-0 z-20 cursor-default bg-black/10"
           />
-          <div className="absolute left-0 z-30 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-neutral-200 bg-white p-3 shadow-lg">
+          <div className="absolute left-0 z-30 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-sand-200 bg-white p-3 shadow-lg">
             <button
               type="button"
               onClick={useMyLocation}
@@ -127,13 +127,13 @@ export function LocationPicker({
               <span aria-hidden>🎯</span>
               {locating ? copy.home.locating : copy.home.useMyLocation}
             </button>
-            {denied && <p className="mt-2 text-xs text-neutral-500">{copy.home.locationDenied}</p>}
+            {denied && <p className="mt-2 text-xs text-sand-500">{copy.home.locationDenied}</p>}
 
             <input
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               placeholder={copy.home.areaFilterPlaceholder}
-              className="mt-3 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-zuby-500 focus:outline-none"
+              className="mt-3 w-full rounded-lg border border-sand-300 px-3 py-2 text-sm focus:border-zuby-500 focus:outline-none"
             />
 
             <ul className="mt-2 max-h-64 overflow-y-auto">
@@ -142,14 +142,14 @@ export function LocationPicker({
                   <button
                     type="button"
                     onClick={() => choose({ label: n.name, lat: n.lat, lng: n.lng })}
-                    className="w-full rounded-lg px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50"
+                    className="w-full rounded-lg px-3 py-2 text-left text-sm text-sand-700 hover:bg-sand-50"
                   >
                     {n.name}
                   </button>
                 </li>
               ))}
               {shown.length === 0 && (
-                <li className="px-3 py-2 text-sm text-neutral-400">{copy.home.noAreas}</li>
+                <li className="px-3 py-2 text-sm text-sand-400">{copy.home.noAreas}</li>
               )}
             </ul>
           </div>

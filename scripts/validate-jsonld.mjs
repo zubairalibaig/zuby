@@ -137,9 +137,9 @@ check("landing threshold is defined once and is at least 2", () => {
 
 check("landing routes enforce the threshold before rendering", () => {
   const routes = [
-    "../src/app/[city]/[neighbourhood]/cuisine/[cuisine]/page.tsx",
-    "../src/app/[city]/diet/[dietary]/page.tsx",
-    "../src/app/[city]/[neighbourhood]/diet/[dietary]/page.tsx",
+    "../src/app/(site)/[city]/[neighbourhood]/cuisine/[cuisine]/page.tsx",
+    "../src/app/(site)/[city]/diet/[dietary]/page.tsx",
+    "../src/app/(site)/[city]/[neighbourhood]/diet/[dietary]/page.tsx",
   ];
   for (const route of routes) {
     const src = readFileSync(new URL(route, import.meta.url), "utf8");

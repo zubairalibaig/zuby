@@ -36,12 +36,13 @@ export function HomeHeader({
       {location ? (
         <Link
           href={nearYouHref}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-zuby-600 hover:text-zuby-700"
+          className="inline-flex items-center gap-1.5 rounded-full bg-leaf-50 px-3.5 py-2 text-sm font-semibold text-leaf-700 transition hover:bg-leaf-100"
         >
-          {copy.home.nearYouHeading} — {location.label} →
+          <span aria-hidden>🎯</span>
+          {copy.home.showChefsNear(location.label)} →
         </Link>
       ) : (
-        <p className="text-sm text-neutral-500">{copy.home.heroLocationPrompt}</p>
+        <p className="px-1 text-sm text-sand-500">{copy.home.heroLocationPrompt}</p>
       )}
     </div>
   );
