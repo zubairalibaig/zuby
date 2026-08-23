@@ -113,9 +113,24 @@ each screen. These need the live project.
 2. **Add yourself as an admin:** run block 1 of `supabase/ops.sql`.
 3. **Create the photo bucket:** run block 2 of `supabase/ops.sql` (needed before
    photo upload works).
-4. **Enable Google auth in Supabase:** Authentication → Providers → Google (add
-   the OAuth client ID/secret from Google Cloud), and add your Vercel domain +
-   `https://<domain>/auth/callback` to the allowed redirect URLs.
+4. **Enable Google auth in Supabase.** Skipping this is exactly what produces
+   `{"code":400,"error_code":"validation_failed","msg":"Unsupported provider:
+   provider is not enabled"}` when a buyer or chef clicks "Continue with
+   Google" — the app-side code is already correct (`provider: "google"` plus
+   the right `redirectTo`, in both `/login` and `/admin/login`); this is a
+   Supabase-side switch, not a code fix. Three steps, in order:
+   - **Google Cloud Console** → APIs & Services → Credentials → Create
+     Credentials → OAuth client ID → Web application. Authorized redirect
+     URI: `https://<project-ref>.supabase.co/auth/v1/callback` — Supabase's
+     own callback endpoint, NOT the app's `/auth/callback` route (mixing
+     these two up trades this error for a Google "redirect_uri_mismatch"
+     one). Copy the Client ID and Client Secret it gives you.
+   - **Supabase → Authentication → Providers → Google**: toggle it on, paste
+     in the Client ID and Client Secret from the step above.
+   - **Supabase → Authentication → URL Configuration → Redirect URLs**: must
+     include `https://<your-domain>/auth/callback` — this one's shared with
+     the email/magic-link flow (see docs/resend-setup.md), so if that's
+     already set up, Google needs nothing further here.
 
 Once those are done, sign in at `/admin/login`, and the full loop (promote a
 scraped candidate → approve in the queue → live public page) works end-to-end.
