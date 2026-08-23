@@ -16,7 +16,12 @@ export async function GET() {
       cookies: { getAll: () => [], setAll: () => undefined },
     });
     const { error } = await supabase.from("countries").select("id", { count: "exact", head: true });
-    return NextResponse.json({ ok: !error, db: error ? `error: ${error.message}` : "ok" });
+    return NextResponse.json({
+      ok: !error,
+      db: error ? `error: ${error.message}` : "ok",
+      // Transactional email is optional — unset means sends silently no-op.
+      email: process.env.RESEND_API_KEY ? "configured" : "not-configured",
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "unknown error";
     return NextResponse.json({ ok: false, db: `error: ${message}` }, { status: 500 });

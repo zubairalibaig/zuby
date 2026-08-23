@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EmailDiagnostics } from "@/components/admin/EmailDiagnostics";
 import { requireAdminPage } from "@/lib/admin/auth";
 import { getOverview } from "@/lib/admin/queries";
 
@@ -89,6 +90,8 @@ export default async function AdminHome() {
           )}
         </div>
       </section>
+
+      <EmailDiagnostics configured={Boolean(process.env.RESEND_API_KEY)} />
     </div>
   );
 }

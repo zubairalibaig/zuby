@@ -591,3 +591,24 @@ export async function createChef(input: {
     return { ok: false, error: e instanceof Error ? e.message : "Failed" };
   }
 }
+
+// ---------------------------------------------------------------------------
+// Diagnostics
+// ---------------------------------------------------------------------------
+
+/** Send a test email to the signed-in admin, to verify Resend setup. */
+export async function sendTestEmail(): Promise<ActionResult & { detail?: string }> {
+  try {
+    const { user } = await requireAdminAction();
+    if (!user.email) return { ok: false, error: "Your admin account has no email address." };
+
+    const { emailTestSend } = await import("@/lib/email/send");
+    const result = await emailTestSend(user.email);
+    if (!result.sent) {
+      return { ok: false, error: result.reason ?? "Send failed" };
+    }
+    return { ok: true, detail: `Sent to ${user.email}` };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed" };
+  }
+}

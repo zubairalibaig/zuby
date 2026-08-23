@@ -148,3 +148,16 @@ export async function emailClaimDecision(
     "Reply to this email with anything that proves the kitchen is yours and we'll take another look.",
   ]);
 }
+
+/**
+ * Deliverability check for the founder: sends a real message through whatever
+ * Resend config is live. Used by the admin diagnostics panel so setup can be
+ * verified without faking an approval on a real listing.
+ */
+export async function emailTestSend(to: string): Promise<SendResult> {
+  return send(to, "Zuby email is working", [
+    "This is a test from your Zuby admin panel.",
+    "If you're reading this, RESEND_API_KEY and your sending domain are set up correctly — chefs will receive approval, changes-requested and claim-decision emails.",
+    `Site: ${siteUrl()}`,
+  ]);
+}
