@@ -18,6 +18,7 @@ export function SearchLocationGate({ neighbourhoods }: { neighbourhoods: Neighbo
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<Status>("locating");
+  const [filter, setFilter] = useState("");
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -50,13 +51,31 @@ export function SearchLocationGate({ neighbourhoods }: { neighbourhoods: Neighbo
 
   if (status === "done") return null;
 
+  // With 100+ neighbourhoods now seeded (supabase/seed.sql), a flat unscrolled
+  // grid of every one of them made this the longest thing on the page — the
+  // same problem the home LocationPicker already solved with a filter input
+  // and a capped, scrollable list. Mirrored here rather than shared as one
+  // component, since the two render very differently (a sheet vs. inline).
+  const shown = filter.trim()
+    ? neighbourhoods.filter((n) => n.name.toLowerCase().includes(filter.trim().toLowerCase()))
+    : neighbourhoods;
+
   return (
     <div className="rounded-2xl border border-sand-200 p-6">
       <h2 className="font-semibold text-sand-900">{copy.search.locationDeniedHeading}</h2>
       <p className="mt-1 text-sm text-sand-500">{copy.search.locationDeniedBody}</p>
-      <ul className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {neighbourhoods.map((n) => (
-          <li key={n.slug}>
+
+      <input
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+        placeholder={copy.home.areaFilterPlaceholder}
+        aria-label={copy.home.areaFilterPlaceholder}
+        className="mt-4 w-full rounded-lg border border-sand-300 px-3 py-2 text-sm focus:border-zuby-500 focus:outline-none"
+      />
+
+      <ul className="mt-3 grid max-h-80 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">
+        {shown.map((n) => (
+          <li key={`${n.citySlug}/${n.slug}`}>
             <Link
               href={`/${n.citySlug}/${n.slug}`}
               className="block rounded-lg border border-sand-200 px-3 py-2 text-center text-sm font-medium text-sand-700 hover:border-zuby-500/50 hover:text-zuby-600"
@@ -65,6 +84,11 @@ export function SearchLocationGate({ neighbourhoods }: { neighbourhoods: Neighbo
             </Link>
           </li>
         ))}
+        {shown.length === 0 && (
+          <li className="col-span-full py-2 text-center text-sm text-sand-400">
+            {copy.home.noAreas}
+          </li>
+        )}
       </ul>
     </div>
   );

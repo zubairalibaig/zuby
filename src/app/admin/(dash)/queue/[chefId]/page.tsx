@@ -24,6 +24,21 @@ export default async function QueueDetailPage({ params }: { params: Promise<{ ch
           ← Back to queue
         </Link>
         <div className="mt-3 space-y-4">
+          {/* A chef page only exists at /<city>/<neighbourhood>/<chef> — a
+              scraped listing whose area text didn't match a known
+              neighbourhood (promote_ingest_candidate) lands here with none
+              assigned. admin_set_chef_status() now refuses to approve that
+              state, so surface it before the admin hits the error. */}
+          {!chef.neighbourhoodSlug && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+              No neighbourhood assigned — this listing has no public URL yet and can&apos;t be
+              approved until you set one in{" "}
+              <Link href={`/admin/chefs/${chef.id}`} className="font-medium underline">
+                the editor
+              </Link>
+              .
+            </div>
+          )}
           <PendingEditsPanel chef={chef} />
           <ChefDetailView chef={chef} provenance={provenance} />
         </div>
