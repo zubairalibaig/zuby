@@ -514,6 +514,17 @@ export type Database = {
         Args: { p_city?: string | null; p_days?: number; p_limit?: number };
         Returns: SearchChefResult[];
       };
+      trending_dishes: {
+        Args: { p_city?: string | null; p_days?: number; p_limit?: number };
+        Returns: {
+          item_name: string;
+          kitchen_name: string;
+          chef_slug: string;
+          city_slug: string;
+          neighbourhood_slug: string | null;
+          clicks: number;
+        }[];
+      };
       admin_set_promotion: {
         Args: { p_chef_id: string; p_days: number; p_weight?: number };
         Returns: void;
@@ -533,6 +544,10 @@ export type Database = {
       chef_event_stats: {
         Args: { p_chef_id: string; p_days?: number };
         Returns: { kind: string; cnt: number }[];
+      };
+      chef_dashboard_stats: {
+        Args: { p_chef_id: string; p_days?: number };
+        Returns: Json;
       };
       admin_add_neighbourhood: {
         Args: {

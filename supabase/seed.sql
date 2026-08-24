@@ -239,10 +239,77 @@ insert into public.neighbourhoods (id, city_id, slug, name, center) values
   ('00000000-0000-4000-8000-000000000283', '00000000-0000-4000-8000-000000000101', 'mysore-road', 'Mysore Road',
    extensions.st_setsrid(extensions.st_makepoint(77.532, 12.9494), 4326)::extensions.geography),
   ('00000000-0000-4000-8000-000000000284', '00000000-0000-4000-8000-000000000101', 'jnanabharathi', 'Jnanabharathi',
-   extensions.st_setsrid(extensions.st_makepoint(77.5019, 12.9337), 4326)::extensions.geography)
+   extensions.st_setsrid(extensions.st_makepoint(77.5019, 12.9337), 4326)::extensions.geography),
+  -- More real gaps in the original 84: dense residential pockets (Ejipura,
+  -- Viveknagar, Austin Town, Murugeshpalya) that sat between covered areas
+  -- with no centroid of their own, plus the outer corridors — airport road,
+  -- Kanakapura Road, Attibele/Anekal on the Tamil Nadu border, the IT
+  -- corridor past Whitefield — that Bangalore's actual footprint reaches but
+  -- the original batch stopped short of. Same sourcing and precision class
+  -- as the rest of this table (see the comment above): compiled from general
+  -- geographic knowledge, not an API. A chef's own service_radius_km is what
+  -- actually gates who's shown, so a centroid a few hundred metres off
+  -- changes nothing about search correctness.
+  ('00000000-0000-4000-8000-000000000285', '00000000-0000-4000-8000-000000000101', 'ejipura', 'Ejipura',
+   extensions.st_setsrid(extensions.st_makepoint(77.6280, 12.9420), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000286', '00000000-0000-4000-8000-000000000101', 'viveknagar', 'Viveknagar',
+   extensions.st_setsrid(extensions.st_makepoint(77.6180, 12.9430), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000287', '00000000-0000-4000-8000-000000000101', 'austin-town', 'Austin Town',
+   extensions.st_setsrid(extensions.st_makepoint(77.6150, 12.9630), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000288', '00000000-0000-4000-8000-000000000101', 'murugeshpalya', 'Murugeshpalya',
+   extensions.st_setsrid(extensions.st_makepoint(77.6613, 12.9560), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000289', '00000000-0000-4000-8000-000000000101', 'kodihalli', 'Kodihalli (HAL)',
+   extensions.st_setsrid(extensions.st_makepoint(77.6480, 12.9600), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000290', '00000000-0000-4000-8000-000000000101', 'ramamurthy-nagar', 'Ramamurthy Nagar',
+   extensions.st_setsrid(extensions.st_makepoint(77.6650, 13.0210), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000291', '00000000-0000-4000-8000-000000000101', 'hennur', 'Hennur',
+   extensions.st_setsrid(extensions.st_makepoint(77.6390, 13.0350), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000292', '00000000-0000-4000-8000-000000000101', 'thanisandra', 'Thanisandra',
+   extensions.st_setsrid(extensions.st_makepoint(77.6220, 13.0570), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000293', '00000000-0000-4000-8000-000000000101', 'kothanur', 'Kothanur',
+   extensions.st_setsrid(extensions.st_makepoint(77.6480, 13.0430), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000294', '00000000-0000-4000-8000-000000000101', 'kadugodi', 'Kadugodi',
+   extensions.st_setsrid(extensions.st_makepoint(77.7620, 12.9930), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000295', '00000000-0000-4000-8000-000000000101', 'itpl', 'ITPL / Hope Farm',
+   extensions.st_setsrid(extensions.st_makepoint(77.7370, 12.9860), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000296', '00000000-0000-4000-8000-000000000101', 'yelahanka-new-town', 'Yelahanka New Town',
+   extensions.st_setsrid(extensions.st_makepoint(77.5960, 13.1150), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000297', '00000000-0000-4000-8000-000000000101', 'dasarahalli', 'Dasarahalli',
+   extensions.st_setsrid(extensions.st_makepoint(77.5220, 13.0430), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000298', '00000000-0000-4000-8000-000000000101', 'jalahalli', 'Jalahalli',
+   extensions.st_setsrid(extensions.st_makepoint(77.5530, 13.0450), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000299', '00000000-0000-4000-8000-000000000101', 'girinagar', 'Girinagar',
+   extensions.st_setsrid(extensions.st_makepoint(77.5570, 12.9390), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000300', '00000000-0000-4000-8000-000000000101', 'konanakunte', 'Konanakunte',
+   extensions.st_setsrid(extensions.st_makepoint(77.5670, 12.8770), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000301', '00000000-0000-4000-8000-000000000101', 'talaghattapura', 'Talaghattapura',
+   extensions.st_setsrid(extensions.st_makepoint(77.5470, 12.8580), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000302', '00000000-0000-4000-8000-000000000101', 'kanakapura-road', 'Kanakapura Road',
+   extensions.st_setsrid(extensions.st_makepoint(77.5490, 12.8350), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000303', '00000000-0000-4000-8000-000000000101', 'chandra-layout', 'Chandra Layout',
+   extensions.st_setsrid(extensions.st_makepoint(77.5390, 12.9640), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000304', '00000000-0000-4000-8000-000000000101', 'magadi-road', 'Magadi Road',
+   extensions.st_setsrid(extensions.st_makepoint(77.5350, 12.9770), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000305', '00000000-0000-4000-8000-000000000101', 'sarjapur', 'Sarjapur',
+   extensions.st_setsrid(extensions.st_makepoint(77.7360, 12.8600), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000306', '00000000-0000-4000-8000-000000000101', 'devanahalli', 'Devanahalli',
+   extensions.st_setsrid(extensions.st_makepoint(77.7150, 13.2437), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000307', '00000000-0000-4000-8000-000000000101', 'attibele', 'Attibele',
+   extensions.st_setsrid(extensions.st_makepoint(77.7770, 12.7830), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000308', '00000000-0000-4000-8000-000000000101', 'anekal', 'Anekal',
+   extensions.st_setsrid(extensions.st_makepoint(77.6960, 12.7110), 4326)::extensions.geography)
 on conflict (id) do nothing;
 
 -- ---------- cuisines ----------
+-- The original 15 leaned heavily on regional-Indian staples. The 14 appended
+-- after them close gaps against what a buyer actually searches for on
+-- Swiggy/Zomato-style cuisine filters (Punjabi, Chettinad, Momos, Sweets,
+-- Continental, ...) that home kitchens genuinely cook but had nowhere to tag
+-- themselves under — most were previously flattened into "North Indian" or
+-- "Bakes & Desserts" (see ingest/src/normalise/taxonomy.ts, updated in the
+-- same change). Fast food / pizza / burgers deliberately excluded — that's
+-- restaurant fare, not ghar-ka-khana, and doesn't belong on a home-chef
+-- directory (CONCEPT.md).
 insert into public.cuisines (id, slug, name) values
   ('00000000-0000-4000-8000-000000000301', 'biryani', 'Biryani'),
   ('00000000-0000-4000-8000-000000000302', 'north-indian', 'North Indian'),
@@ -258,7 +325,21 @@ insert into public.cuisines (id, slug, name) values
   ('00000000-0000-4000-8000-000000000312', 'chinese-desi', 'Indo-Chinese'),
   ('00000000-0000-4000-8000-000000000313', 'bakes-desserts', 'Bakes & Desserts'),
   ('00000000-0000-4000-8000-000000000314', 'healthy-meals', 'Healthy Meals'),
-  ('00000000-0000-4000-8000-000000000315', 'tiffin-thali', 'Tiffin & Thali')
+  ('00000000-0000-4000-8000-000000000315', 'tiffin-thali', 'Tiffin & Thali'),
+  ('00000000-0000-4000-8000-000000000316', 'punjabi', 'Punjabi'),
+  ('00000000-0000-4000-8000-000000000317', 'awadhi-mughlai', 'Awadhi & Mughlai'),
+  ('00000000-0000-4000-8000-000000000318', 'chettinad', 'Chettinad'),
+  ('00000000-0000-4000-8000-000000000319', 'konkani', 'Konkani'),
+  ('00000000-0000-4000-8000-000000000320', 'goan', 'Goan'),
+  ('00000000-0000-4000-8000-000000000321', 'parsi', 'Parsi'),
+  ('00000000-0000-4000-8000-000000000322', 'kashmiri', 'Kashmiri'),
+  ('00000000-0000-4000-8000-000000000323', 'sindhi', 'Sindhi'),
+  ('00000000-0000-4000-8000-000000000324', 'north-eastern', 'North-Eastern'),
+  ('00000000-0000-4000-8000-000000000325', 'bihari-purvanchali', 'Bihari & Purvanchali'),
+  ('00000000-0000-4000-8000-000000000326', 'continental', 'Continental & Italian'),
+  ('00000000-0000-4000-8000-000000000327', 'momos-street-food', 'Momos & Street Food'),
+  ('00000000-0000-4000-8000-000000000328', 'sweets-mithai', 'Sweets & Mithai'),
+  ('00000000-0000-4000-8000-000000000329', 'pickles-podis', 'Pickles & Podis')
 on conflict (id) do nothing;
 
 -- ---------- dietary tags ----------

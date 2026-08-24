@@ -9,7 +9,7 @@ const DIETARY_DOT: Record<string, string> = {
   egg: "bg-yellow-500",
 };
 
-export function MenuItemRow({ item }: { item: ChefMenuItem }) {
+export function MenuItemRow({ item, chefId }: { item: ChefMenuItem; chefId: string }) {
   return (
     <div className="flex gap-3 border-b border-sand-100 py-4 last:border-0">
       {item.photoUrl && (
@@ -59,7 +59,20 @@ export function MenuItemRow({ item }: { item: ChefMenuItem }) {
               ` · ${copy.chef.nutritionPer} (${item.nutrition.serving_g}g)`}
           </p>
         )}
-        {!item.isAvailable && (
+        {item.isAvailable ? (
+          // Item-aware WhatsApp CTA — same /api/wa/[chefId] redirect as the
+          // chef-level button, just with ?item= so the click (and the
+          // message it opens) is attributed to this specific dish. This is
+          // the signal behind "My stats" → most asked-about dishes, and the
+          // home page's "Popular dishes" rail — not a rating (CONCEPT.md
+          // rules those out for V1), just observed WhatsApp intent per item.
+          <a
+            href={`/api/wa/${chefId}?item=${item.id}`}
+            className="mt-2 inline-flex items-center gap-1 rounded-full border border-sand-300 px-3 py-1 text-xs font-semibold text-sand-600 hover:border-[#25D366] hover:text-[#128C7E]"
+          >
+            {copy.chef.orderItemCta} →
+          </a>
+        ) : (
           <p className="mt-1 text-xs font-medium text-sand-400">{copy.chef.unavailable}</p>
         )}
       </div>

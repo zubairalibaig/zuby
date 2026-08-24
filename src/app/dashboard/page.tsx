@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { requireChefPage } from "@/lib/chef/auth";
-import { getMyChef, getChefStats } from "@/lib/chef/queries";
+import { getMyChef, getChefDashboardStats } from "@/lib/chef/queries";
+import { ShareButton } from "@/components/directory/ShareButton";
 import { copy } from "@/lib/copy/en";
 
 export const metadata: Metadata = { title: copy.dashboard.metaTitle };
@@ -48,13 +49,36 @@ function statusLabel(
   }
 }
 
+/**
+ * Fills the gaps in the sparse `daily` series (days with zero activity are
+ * simply absent from the RPC result — see chef_dashboard_stats()) into a
+ * continuous last-N-days array, so the trend bars don't lie by skipping
+ * quiet days.
+ */
+function buildDailySeries(
+  daily: { day: string; waClicks: number; profileViews: number }[],
+  days: number,
+): { day: string; total: number }[] {
+  const byDay = new Map(daily.map((d) => [d.day, d]));
+  const series: { day: string; total: number }[] = [];
+  const today = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setUTCDate(d.getUTCDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    const row = byDay.get(key);
+    series.push({ day: key, total: (row?.waClicks ?? 0) + (row?.profileViews ?? 0) });
+  }
+  return series;
+}
+
 export default async function DashboardOverview() {
   const { supabase, chefId } = await requireChefPage();
   if (!chefId) return null;
 
   const [chef, stats] = await Promise.all([
     getMyChef(supabase, chefId),
-    getChefStats(supabase, chefId),
+    getChefDashboardStats(supabase, chefId),
   ]);
   if (!chef) return <p className="text-neutral-500">Listing not found.</p>;
 
@@ -124,26 +148,100 @@ export default async function DashboardOverview() {
         )}
       </div>
 
+      {/* Share your kitchen — the "business card" link: one URL with the
+          menu, photos, prices and a WhatsApp button, easy to hand a new
+          customer the way a shop hands over a business card. */}
+      {publicUrl && (
+        <div className="rounded-xl border border-neutral-200 bg-white p-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+            {copy.dashboard.shareHeading}
+          </h2>
+          <p className="mt-2 text-sm text-neutral-600">{copy.dashboard.shareBody}</p>
+          <p className="mt-3 truncate rounded-lg bg-neutral-50 px-3 py-2 text-sm font-medium text-zuby-600">
+            zuby.food{publicUrl}
+          </p>
+          <div className="mt-3">
+            <ShareButton kitchenName={chef.kitchenName} path={publicUrl} />
+          </div>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="rounded-xl border border-neutral-200 bg-white p-5">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
           {copy.dashboard.statsHeading}
         </h2>
         {stats.waClicks > 0 || stats.profileViews > 0 ? (
-          <div className="mt-3 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-lg bg-green-50 p-4 text-center">
-              <p className="text-3xl font-bold text-green-700">{stats.waClicks}</p>
-              <p className="mt-1 text-sm text-green-600">
-                {copy.dashboard.statsWaClicks(stats.waClicks)}
-              </p>
+          <>
+            <div className="mt-3 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-lg bg-green-50 p-4 text-center">
+                <p className="text-3xl font-bold text-green-700">{stats.waClicks}</p>
+                <p className="mt-1 text-sm text-green-600">
+                  {copy.dashboard.statsWaClicks(stats.waClicks)}
+                </p>
+              </div>
+              <div className="rounded-lg bg-blue-50 p-4 text-center">
+                <p className="text-3xl font-bold text-blue-700">{stats.profileViews}</p>
+                <p className="mt-1 text-sm text-blue-600">
+                  {copy.dashboard.statsProfileViews(stats.profileViews)}
+                </p>
+              </div>
             </div>
-            <div className="rounded-lg bg-blue-50 p-4 text-center">
-              <p className="text-3xl font-bold text-blue-700">{stats.profileViews}</p>
-              <p className="mt-1 text-sm text-blue-600">
-                {copy.dashboard.statsProfileViews(stats.profileViews)}
+
+            {/* Daily trend — pure CSS bars, no charting library. Gaps in the
+                RPC's sparse series are filled to a continuous 30 days so a
+                quiet day reads as quiet, not missing. */}
+            <div className="mt-5">
+              <p className="text-xs font-medium text-neutral-500">
+                {copy.dashboard.statsTrendHeading}
               </p>
+              {(() => {
+                const series = buildDailySeries(stats.daily, 30);
+                const max = Math.max(1, ...series.map((d) => d.total));
+                return (
+                  <div className="mt-2 flex h-16 items-end gap-[2px]">
+                    {series.map((d) => (
+                      <div
+                        key={d.day}
+                        title={`${d.day}: ${d.total}`}
+                        className="flex-1 rounded-t bg-zuby-400"
+                        style={{ height: `${Math.max(6, (d.total / max) * 100)}%` }}
+                      />
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
-          </div>
+
+            {/* Most asked-about dishes — per-item WhatsApp-click signal from
+                MenuItemRow's "Order this" CTA. Not a rating: CONCEPT.md rules
+                reviews out of V1, this is intent we actually observe. */}
+            <div className="mt-5">
+              <p className="text-xs font-medium text-neutral-500">
+                {copy.dashboard.statsTopDishesHeading}
+              </p>
+              <p className="mt-0.5 text-xs text-neutral-400">{copy.dashboard.statsTopDishesNote}</p>
+              {stats.topDishes.length > 0 ? (
+                <ul className="mt-2 space-y-1.5">
+                  {stats.topDishes.map((dish) => (
+                    <li
+                      key={dish.itemId}
+                      className="flex items-center justify-between gap-3 rounded-lg bg-neutral-50 px-3 py-2 text-sm"
+                    >
+                      <span className="truncate font-medium text-neutral-800">{dish.itemName}</span>
+                      <span className="shrink-0 text-neutral-500">
+                        {copy.dashboard.statsDishClickCount(dish.clicks)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-sm text-neutral-500">
+                  {copy.dashboard.statsTopDishesEmpty}
+                </p>
+              )}
+            </div>
+          </>
         ) : (
           <p className="mt-3 text-sm text-neutral-500">{copy.dashboard.noStats}</p>
         )}

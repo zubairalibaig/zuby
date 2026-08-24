@@ -110,6 +110,7 @@ export const copy = {
     photosHeading: "Photos",
     timingsHeading: "Timings",
     orderCta: "Order on WhatsApp",
+    orderItemCta: "Order this",
     distanceAway: (km: number) => `~${km} km away`,
     fssaiLabel: "FSSAI",
     cuisinesLabel: "Cuisines",
@@ -299,6 +300,9 @@ export const copy = {
     promotedBadge: "Promoted",
     trendingHeading: "Trending this month",
     trendingNote: "Most contacted on WhatsApp in the last 30 days",
+    popularDishesHeading: "Popular dishes right now",
+    popularDishesNote:
+      'The dishes buyers tap "Order this" for most on WhatsApp in the last 30 days — not a rating, just real demand.',
     nearYouHeading: "Near you",
     showChefsNear: (area: string) => `Show all kitchens near ${area}`,
     areasHeading: "Browse by area",
@@ -323,6 +327,8 @@ export const copy = {
   wa: {
     messageTemplate: (chefFirstName: string | null, kitchenName: string) =>
       `Hi${chefFirstName ? ` ${chefFirstName}` : ""}! I found ${kitchenName} on Zuby (zuby.food) and would like to order. 🍱`,
+    messageTemplateForItem: (chefFirstName: string | null, kitchenName: string, itemName: string) =>
+      `Hi${chefFirstName ? ` ${chefFirstName}` : ""}! I found ${kitchenName} on Zuby (zuby.food) and would like to order the ${itemName}. 🍱`,
   },
 
   login: {
@@ -483,6 +489,17 @@ export const copy = {
     statsWaClicks: (n: number) => `${n} people tapped WhatsApp this month`,
     statsProfileViews: (n: number) => `${n} profile views this month`,
     noStats: "No activity yet — share your Zuby page to get started!",
+    statsTrendHeading: "Last 30 days",
+    statsTrendEmpty: "Activity will show up here once buyers start finding your page.",
+    statsTopDishesHeading: "Most asked-about dishes",
+    statsTopDishesNote: 'Based on which dish someone tapped "Order this" for on WhatsApp.',
+    statsTopDishesEmpty:
+      "No dish-level clicks yet — add best sellers so buyers have something to tap.",
+    statsDishClickCount: (n: number) => `${n} ${n === 1 ? "ask" : "asks"}`,
+
+    shareHeading: "Your Zuby page",
+    shareBody:
+      "This link is your kitchen's page on Zuby — menu, photos, prices and a WhatsApp button, all in one place. Share it with new customers the way you'd hand over a business card.",
   },
 
   notFound: {

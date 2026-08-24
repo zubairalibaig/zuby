@@ -27,8 +27,8 @@ const header = `-- =============================================================
 --   * DROPS the whole \`public\` schema (and the leftover \`drizzle\` schema from
 --     the previous Replit project) — every table and row in them is deleted
 --   * Recreates Zuby's full V1 schema, RLS policies, triggers and functions
---   * Loads seed data (India + Singapore, Bangalore + 7 neighbourhoods,
---     15 cuisines, 7 dietary tags, 9 demo chefs with menus)
+--   * Loads seed data (India + Singapore, Bangalore + 108 neighbourhoods,
+--     29 cuisines, 7 dietary tags, 9 demo chefs with menus)
 --
 -- WHAT IT DOES NOT TOUCH
 --   auth users, storage buckets, the extensions schema, or any other schema.

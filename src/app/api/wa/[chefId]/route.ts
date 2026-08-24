@@ -56,17 +56,39 @@ export async function GET(
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
+  // Optional: the click came from a specific menu item's own CTA rather than
+  // the chef-level button (MenuItemRow). Validated against this chef's own
+  // available items before trusting it — never take an item id at face value
+  // for the message text, and never log one that doesn't belong to this chef.
+  const itemId = request.nextUrl.searchParams.get("item");
+  let item: { id: string; name: string } | null = null;
+  if (itemId && /^[0-9a-f-]{36}$/i.test(itemId)) {
+    const { data: menuItem } = await admin
+      .from("menu_items")
+      .select("id, name")
+      .eq("id", itemId)
+      .eq("chef_id", chef.id)
+      .eq("is_available", true)
+      .maybeSingle();
+    if (menuItem) item = menuItem;
+  }
+
   const geohash = request.nextUrl.searchParams.get("g");
   await admin.from("events").insert({
     kind: "wa_click",
     chef_id: chef.id,
     city_id: chef.city_id,
     geohash5: isValidGeohash5(geohash) ? geohash : null,
+    metadata: item ? { item_id: item.id, item_name: item.name } : null,
   });
 
   const digits = chef.whatsapp_e164.replace(/\D/g, "");
   const firstName = chef.display_name?.split(" ")[0] ?? null;
-  const text = encodeURIComponent(copy.wa.messageTemplate(firstName, chef.kitchen_name));
+  const text = encodeURIComponent(
+    item
+      ? copy.wa.messageTemplateForItem(firstName, chef.kitchen_name, item.name)
+      : copy.wa.messageTemplate(firstName, chef.kitchen_name),
+  );
 
   return NextResponse.redirect(`https://wa.me/${digits}?text=${text}`, { status: 302 });
 }

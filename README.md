@@ -97,7 +97,7 @@ npm run db:apply
 
 Both commands run inside a single transaction — if anything fails, nothing changes.
 
-The seed loads: India + Singapore (inactive), Bangalore with 7 neighbourhoods, 15 cuisines, 7 dietary tags, and 9 demo chefs (7 approved, 1 pending, 1 draft) with menus. Demo chefs are clearly named `Demo Kitchen — …`; delete them before public launch:
+The seed loads: India + Singapore (inactive), Bangalore with 108 neighbourhoods, 29 cuisines, 7 dietary tags, and 9 demo chefs (7 approved, 1 pending, 1 draft) with menus. Demo chefs are clearly named `Demo Kitchen — …`; delete them before public launch:
 
 ```sql
 delete from chefs where kitchen_name like 'Demo Kitchen%';

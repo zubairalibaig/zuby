@@ -278,7 +278,7 @@ export default async function ChefPage({ params }: ChefPageProps) {
           </h2>
           <div className="mt-2 divide-y divide-sand-100">
             {[...bestSellers, ...restOfMenu].map((item) => (
-              <MenuItemRow key={item.id} item={item} />
+              <MenuItemRow key={item.id} item={item} chefId={chef.id} />
             ))}
           </div>
         </section>

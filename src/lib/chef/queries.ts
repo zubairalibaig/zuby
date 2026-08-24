@@ -215,6 +215,53 @@ export async function getChefStats(
   return { waClicks, profileViews };
 }
 
+export interface ChefDashboardStats {
+  waClicks: number;
+  profileViews: number;
+  daily: { day: string; waClicks: number; profileViews: number }[];
+  topDishes: { itemId: string; itemName: string; clicks: number }[];
+}
+
+/**
+ * Richer stats for the dashboard: totals (same numbers getChefStats
+ * returns), a daily trend, and the dishes buyers tap "Order this" for most
+ * — the WhatsApp-click-per-item signal from MenuItemRow /
+ * /api/wa/[chefId]?item=. Not a rating: CONCEPT.md rules reviews out of V1.
+ * Falls back to all-zero on error so the dashboard degrades rather than 500s.
+ */
+export async function getChefDashboardStats(
+  supabase: Client,
+  chefId: string,
+  days = 30,
+): Promise<ChefDashboardStats> {
+  const empty: ChefDashboardStats = { waClicks: 0, profileViews: 0, daily: [], topDishes: [] };
+  const { data, error } = await supabase.rpc("chef_dashboard_stats", {
+    p_chef_id: chefId,
+    p_days: days,
+  });
+  if (error || !data) return empty;
+
+  const raw = data as {
+    wa_clicks: number;
+    profile_views: number;
+    daily: { day: string; wa_clicks: number; profile_views: number }[];
+    top_dishes: { item_id: string; item_name: string; clicks: number }[];
+  };
+
+  return {
+    waClicks: Number(raw.wa_clicks ?? 0),
+    profileViews: Number(raw.profile_views ?? 0),
+    daily: (raw.daily ?? []).map((d) => ({
+      day: d.day,
+      waClicks: Number(d.wa_clicks ?? 0),
+      profileViews: Number(d.profile_views ?? 0),
+    })),
+    topDishes: (raw.top_dishes ?? [])
+      .filter((t) => t.item_id && t.item_name)
+      .map((t) => ({ itemId: t.item_id, itemName: t.item_name, clicks: Number(t.clicks ?? 0) })),
+  };
+}
+
 export interface PendingClaim {
   id: string;
   chefId: string;

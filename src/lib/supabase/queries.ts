@@ -459,6 +459,41 @@ export async function getTrendingChefs(
   return data ?? [];
 }
 
+export interface TrendingDish {
+  itemName: string;
+  kitchenName: string;
+  chefSlug: string;
+  citySlug: string;
+  neighbourhoodSlug: string | null;
+  clicks: number;
+}
+
+/**
+ * Dish-level equivalent of getTrendingChefs — which specific items buyers
+ * tapped "Order this" for most on WhatsApp, city-wide. Same signal, one
+ * level more specific. Not a rating (CONCEPT.md rules those out for V1).
+ */
+export async function getTrendingDishes(
+  citySlug?: string | null,
+  limit = 8,
+): Promise<TrendingDish[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("trending_dishes", {
+    p_city: await cityIdFor(citySlug),
+    p_days: 30,
+    p_limit: limit,
+  });
+  if (error) throw new Error(`getTrendingDishes: ${error.message}`);
+  return (data ?? []).map((row) => ({
+    itemName: row.item_name,
+    kitchenName: row.kitchen_name,
+    chefSlug: row.chef_slug,
+    citySlug: row.city_slug,
+    neighbourhoodSlug: row.neighbourhood_slug,
+    clicks: Number(row.clicks),
+  }));
+}
+
 /**
  * Chef ids whose menu contains a dish matching free text. Used to narrow geo
  * results by keyword — a buyer searching "kori rotti" should find the kitchen

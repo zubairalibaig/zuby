@@ -11,8 +11,8 @@
 --   * DROPS the whole `public` schema (and the leftover `drizzle` schema from
 --     the previous Replit project) — every table and row in them is deleted
 --   * Recreates Zuby's full V1 schema, RLS policies, triggers and functions
---   * Loads seed data (India + Singapore, Bangalore + 7 neighbourhoods,
---     15 cuisines, 7 dietary tags, 9 demo chefs with menus)
+--   * Loads seed data (India + Singapore, Bangalore + 108 neighbourhoods,
+--     29 cuisines, 7 dietary tags, 9 demo chefs with menus)
 --
 -- WHAT IT DOES NOT TOUCH
 --   auth users, storage buckets, the extensions schema, or any other schema.
@@ -2301,6 +2301,158 @@ grant execute on function public.admin_add_neighbourhood(text, text, text, doubl
 
 
 -- =====================================================================
+-- SOURCE: supabase/migrations/20260815000018_dish_analytics.sql
+-- =====================================================================
+-- Analytics deepening, alongside the cuisine/neighbourhood catalog expansion
+-- in this same change:
+--
+--   1. chef_dashboard_stats() — richer version of chef_event_stats(): still
+--      wa_click + profile_view totals, plus a daily trend and a per-dish
+--      breakdown, for the chef-facing "My stats" panel. Per-dish counts come
+--      from events.metadata->>'item_id', populated by /api/wa/[chefId] when
+--      a click originates from a specific menu item's own CTA
+--      (MenuItemRow) rather than the chef-level WhatsApp button.
+--   2. trending_dishes() — the same per-dish signal, city-wide, for the home
+--      page's "Popular dishes" rail. Both are explicitly NOT a rating —
+--      CONCEPT.md rules reviews out of V1 — this is the same "observed
+--      WhatsApp-click demand" signal trending_chefs() already uses, just at
+--      dish granularity instead of kitchen granularity.
+
+create or replace function public.chef_dashboard_stats(
+  p_chef_id uuid,
+  p_days integer default 30
+)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  result jsonb;
+  v_since timestamptz := now() - make_interval(days => p_days);
+begin
+  -- Same authorisation posture as chef_event_stats(): the caller must supply
+  -- the chef_id, and only aggregate counts come back — no PII. Still worth
+  -- gating to the owning chef or an admin, rather than any authenticated
+  -- user, since the per-dish breakdown is more specific than a bare total.
+  if not exists (
+    select 1 from public.chefs
+    where id = p_chef_id
+      and (claimed_by = auth.uid() or public.is_admin())
+  ) then
+    raise exception 'not authorised to read stats for chef %', p_chef_id;
+  end if;
+
+  select jsonb_build_object(
+    'wa_clicks', (
+      select count(*) from public.events
+      where chef_id = p_chef_id and kind = 'wa_click' and created_at >= v_since
+    ),
+    'profile_views', (
+      select count(*) from public.events
+      where chef_id = p_chef_id and kind = 'profile_view' and created_at >= v_since
+    ),
+
+    -- Daily trend, last p_days — days with no activity are simply absent;
+    -- the UI fills the gaps rather than trusting a zero-filled series that
+    -- would imply we track visits we don't.
+    'daily', coalesce((
+      select jsonb_agg(row_to_json(d) order by d.day)
+      from (
+        select
+          date_trunc('day', e.created_at)::date as day,
+          count(*) filter (where e.kind = 'wa_click')     as wa_clicks,
+          count(*) filter (where e.kind = 'profile_view')  as profile_views
+        from public.events e
+        where e.chef_id = p_chef_id and e.created_at >= v_since
+        group by 1
+      ) d
+    ), '[]'::jsonb),
+
+    -- Per-dish clicks, from the item-aware WhatsApp CTA. Grouped by item_id
+    -- (stable even if the chef later renames the dish) but displayed with
+    -- the name captured at click-time, so a deleted item still shows up
+    -- correctly rather than as a broken join.
+    'top_dishes', coalesce((
+      select jsonb_agg(row_to_json(t) order by t.clicks desc)
+      from (
+        select
+          e.metadata->>'item_id'   as item_id,
+          e.metadata->>'item_name' as item_name,
+          count(*)                 as clicks
+        from public.events e
+        where e.chef_id = p_chef_id
+          and e.kind = 'wa_click'
+          and e.created_at >= v_since
+          and e.metadata ? 'item_id'
+        group by 1, 2
+        order by count(*) desc
+        limit 5
+      ) t
+    ), '[]'::jsonb)
+  ) into result;
+
+  return result;
+end;
+$$;
+
+revoke all on function public.chef_dashboard_stats(uuid, integer) from public, anon;
+grant execute on function public.chef_dashboard_stats(uuid, integer) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- trending_dishes(): city-wide "Popular dishes" for the home page. Only ever
+-- surfaces dishes belonging to an approved chef with the item still
+-- available — a click on a dish since discontinued or a kitchen since
+-- suspended should not keep showing up as "popular."
+-- ---------------------------------------------------------------------------
+create or replace function public.trending_dishes(
+  p_city uuid default null,
+  p_days integer default 30,
+  p_limit integer default 8
+)
+returns table (
+  item_name text,
+  kitchen_name text,
+  chef_slug text,
+  city_slug text,
+  neighbourhood_slug text,
+  clicks bigint
+)
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select
+    mi.name as item_name,
+    ch.kitchen_name,
+    ch.slug as chef_slug,
+    ci.slug as city_slug,
+    n.slug as neighbourhood_slug,
+    count(*) as clicks
+  from public.events e
+  join public.chefs ch on ch.id = e.chef_id
+  join public.cities ci on ci.id = ch.city_id
+  left join public.neighbourhoods n on n.id = ch.neighbourhood_id
+  join public.menu_items mi
+    on mi.id = (e.metadata->>'item_id')::uuid
+   and mi.chef_id = ch.id
+  where e.kind = 'wa_click'
+    and e.metadata ? 'item_id'
+    and e.created_at > now() - make_interval(days => p_days)
+    and ch.status = 'approved'
+    and mi.is_available
+    and (p_city is null or ch.city_id = p_city)
+  group by mi.id, mi.name, ch.kitchen_name, ch.slug, ci.slug, n.slug
+  order by count(*) desc
+  limit p_limit;
+$$;
+
+grant execute on function public.trending_dishes(uuid, integer, integer) to anon, authenticated;
+
+
+-- =====================================================================
 -- SOURCE: supabase/seed.sql
 -- =====================================================================
 -- Phase 0 seed data. Idempotent (fixed UUIDs + on conflict do nothing).
@@ -2544,10 +2696,77 @@ insert into public.neighbourhoods (id, city_id, slug, name, center) values
   ('00000000-0000-4000-8000-000000000283', '00000000-0000-4000-8000-000000000101', 'mysore-road', 'Mysore Road',
    extensions.st_setsrid(extensions.st_makepoint(77.532, 12.9494), 4326)::extensions.geography),
   ('00000000-0000-4000-8000-000000000284', '00000000-0000-4000-8000-000000000101', 'jnanabharathi', 'Jnanabharathi',
-   extensions.st_setsrid(extensions.st_makepoint(77.5019, 12.9337), 4326)::extensions.geography)
+   extensions.st_setsrid(extensions.st_makepoint(77.5019, 12.9337), 4326)::extensions.geography),
+  -- More real gaps in the original 84: dense residential pockets (Ejipura,
+  -- Viveknagar, Austin Town, Murugeshpalya) that sat between covered areas
+  -- with no centroid of their own, plus the outer corridors — airport road,
+  -- Kanakapura Road, Attibele/Anekal on the Tamil Nadu border, the IT
+  -- corridor past Whitefield — that Bangalore's actual footprint reaches but
+  -- the original batch stopped short of. Same sourcing and precision class
+  -- as the rest of this table (see the comment above): compiled from general
+  -- geographic knowledge, not an API. A chef's own service_radius_km is what
+  -- actually gates who's shown, so a centroid a few hundred metres off
+  -- changes nothing about search correctness.
+  ('00000000-0000-4000-8000-000000000285', '00000000-0000-4000-8000-000000000101', 'ejipura', 'Ejipura',
+   extensions.st_setsrid(extensions.st_makepoint(77.6280, 12.9420), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000286', '00000000-0000-4000-8000-000000000101', 'viveknagar', 'Viveknagar',
+   extensions.st_setsrid(extensions.st_makepoint(77.6180, 12.9430), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000287', '00000000-0000-4000-8000-000000000101', 'austin-town', 'Austin Town',
+   extensions.st_setsrid(extensions.st_makepoint(77.6150, 12.9630), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000288', '00000000-0000-4000-8000-000000000101', 'murugeshpalya', 'Murugeshpalya',
+   extensions.st_setsrid(extensions.st_makepoint(77.6613, 12.9560), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000289', '00000000-0000-4000-8000-000000000101', 'kodihalli', 'Kodihalli (HAL)',
+   extensions.st_setsrid(extensions.st_makepoint(77.6480, 12.9600), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000290', '00000000-0000-4000-8000-000000000101', 'ramamurthy-nagar', 'Ramamurthy Nagar',
+   extensions.st_setsrid(extensions.st_makepoint(77.6650, 13.0210), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000291', '00000000-0000-4000-8000-000000000101', 'hennur', 'Hennur',
+   extensions.st_setsrid(extensions.st_makepoint(77.6390, 13.0350), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000292', '00000000-0000-4000-8000-000000000101', 'thanisandra', 'Thanisandra',
+   extensions.st_setsrid(extensions.st_makepoint(77.6220, 13.0570), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000293', '00000000-0000-4000-8000-000000000101', 'kothanur', 'Kothanur',
+   extensions.st_setsrid(extensions.st_makepoint(77.6480, 13.0430), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000294', '00000000-0000-4000-8000-000000000101', 'kadugodi', 'Kadugodi',
+   extensions.st_setsrid(extensions.st_makepoint(77.7620, 12.9930), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000295', '00000000-0000-4000-8000-000000000101', 'itpl', 'ITPL / Hope Farm',
+   extensions.st_setsrid(extensions.st_makepoint(77.7370, 12.9860), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000296', '00000000-0000-4000-8000-000000000101', 'yelahanka-new-town', 'Yelahanka New Town',
+   extensions.st_setsrid(extensions.st_makepoint(77.5960, 13.1150), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000297', '00000000-0000-4000-8000-000000000101', 'dasarahalli', 'Dasarahalli',
+   extensions.st_setsrid(extensions.st_makepoint(77.5220, 13.0430), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000298', '00000000-0000-4000-8000-000000000101', 'jalahalli', 'Jalahalli',
+   extensions.st_setsrid(extensions.st_makepoint(77.5530, 13.0450), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000299', '00000000-0000-4000-8000-000000000101', 'girinagar', 'Girinagar',
+   extensions.st_setsrid(extensions.st_makepoint(77.5570, 12.9390), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000300', '00000000-0000-4000-8000-000000000101', 'konanakunte', 'Konanakunte',
+   extensions.st_setsrid(extensions.st_makepoint(77.5670, 12.8770), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000301', '00000000-0000-4000-8000-000000000101', 'talaghattapura', 'Talaghattapura',
+   extensions.st_setsrid(extensions.st_makepoint(77.5470, 12.8580), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000302', '00000000-0000-4000-8000-000000000101', 'kanakapura-road', 'Kanakapura Road',
+   extensions.st_setsrid(extensions.st_makepoint(77.5490, 12.8350), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000303', '00000000-0000-4000-8000-000000000101', 'chandra-layout', 'Chandra Layout',
+   extensions.st_setsrid(extensions.st_makepoint(77.5390, 12.9640), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000304', '00000000-0000-4000-8000-000000000101', 'magadi-road', 'Magadi Road',
+   extensions.st_setsrid(extensions.st_makepoint(77.5350, 12.9770), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000305', '00000000-0000-4000-8000-000000000101', 'sarjapur', 'Sarjapur',
+   extensions.st_setsrid(extensions.st_makepoint(77.7360, 12.8600), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000306', '00000000-0000-4000-8000-000000000101', 'devanahalli', 'Devanahalli',
+   extensions.st_setsrid(extensions.st_makepoint(77.7150, 13.2437), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000307', '00000000-0000-4000-8000-000000000101', 'attibele', 'Attibele',
+   extensions.st_setsrid(extensions.st_makepoint(77.7770, 12.7830), 4326)::extensions.geography),
+  ('00000000-0000-4000-8000-000000000308', '00000000-0000-4000-8000-000000000101', 'anekal', 'Anekal',
+   extensions.st_setsrid(extensions.st_makepoint(77.6960, 12.7110), 4326)::extensions.geography)
 on conflict (id) do nothing;
 
 -- ---------- cuisines ----------
+-- The original 15 leaned heavily on regional-Indian staples. The 14 appended
+-- after them close gaps against what a buyer actually searches for on
+-- Swiggy/Zomato-style cuisine filters (Punjabi, Chettinad, Momos, Sweets,
+-- Continental, ...) that home kitchens genuinely cook but had nowhere to tag
+-- themselves under — most were previously flattened into "North Indian" or
+-- "Bakes & Desserts" (see ingest/src/normalise/taxonomy.ts, updated in the
+-- same change). Fast food / pizza / burgers deliberately excluded — that's
+-- restaurant fare, not ghar-ka-khana, and doesn't belong on a home-chef
+-- directory (CONCEPT.md).
 insert into public.cuisines (id, slug, name) values
   ('00000000-0000-4000-8000-000000000301', 'biryani', 'Biryani'),
   ('00000000-0000-4000-8000-000000000302', 'north-indian', 'North Indian'),
@@ -2563,7 +2782,21 @@ insert into public.cuisines (id, slug, name) values
   ('00000000-0000-4000-8000-000000000312', 'chinese-desi', 'Indo-Chinese'),
   ('00000000-0000-4000-8000-000000000313', 'bakes-desserts', 'Bakes & Desserts'),
   ('00000000-0000-4000-8000-000000000314', 'healthy-meals', 'Healthy Meals'),
-  ('00000000-0000-4000-8000-000000000315', 'tiffin-thali', 'Tiffin & Thali')
+  ('00000000-0000-4000-8000-000000000315', 'tiffin-thali', 'Tiffin & Thali'),
+  ('00000000-0000-4000-8000-000000000316', 'punjabi', 'Punjabi'),
+  ('00000000-0000-4000-8000-000000000317', 'awadhi-mughlai', 'Awadhi & Mughlai'),
+  ('00000000-0000-4000-8000-000000000318', 'chettinad', 'Chettinad'),
+  ('00000000-0000-4000-8000-000000000319', 'konkani', 'Konkani'),
+  ('00000000-0000-4000-8000-000000000320', 'goan', 'Goan'),
+  ('00000000-0000-4000-8000-000000000321', 'parsi', 'Parsi'),
+  ('00000000-0000-4000-8000-000000000322', 'kashmiri', 'Kashmiri'),
+  ('00000000-0000-4000-8000-000000000323', 'sindhi', 'Sindhi'),
+  ('00000000-0000-4000-8000-000000000324', 'north-eastern', 'North-Eastern'),
+  ('00000000-0000-4000-8000-000000000325', 'bihari-purvanchali', 'Bihari & Purvanchali'),
+  ('00000000-0000-4000-8000-000000000326', 'continental', 'Continental & Italian'),
+  ('00000000-0000-4000-8000-000000000327', 'momos-street-food', 'Momos & Street Food'),
+  ('00000000-0000-4000-8000-000000000328', 'sweets-mithai', 'Sweets & Mithai'),
+  ('00000000-0000-4000-8000-000000000329', 'pickles-podis', 'Pickles & Podis')
 on conflict (id) do nothing;
 
 -- ---------- dietary tags ----------

@@ -9,11 +9,13 @@ import {
   getNeighbourhoodsForCity,
   getPromotedChefs,
   getTrendingChefs,
+  getTrendingDishes,
 } from "@/lib/supabase/queries";
 import { Hero } from "@/components/home/Hero";
 import { TrustStrip } from "@/components/home/TrustStrip";
 import { CategoryTiles, type Tile } from "@/components/home/CategoryTiles";
 import { ChefRail } from "@/components/home/ChefRail";
+import { PopularDishes } from "@/components/home/PopularDishes";
 import { SectionHeading } from "@/components/home/SectionHeading";
 import { DiscoveryEmpty } from "@/components/home/DiscoveryEmpty";
 import { JsonLd } from "@/components/directory/JsonLd";
@@ -62,6 +64,20 @@ const CUISINE_EMOJI: Record<string, string> = {
   "bakes-desserts": "🧁",
   "healthy-meals": "🥗",
   "tiffin-thali": "🍱",
+  punjabi: "🧈",
+  "awadhi-mughlai": "🍢",
+  chettinad: "🌿",
+  konkani: "🐠",
+  goan: "🍤",
+  parsi: "🥚",
+  kashmiri: "🍲",
+  sindhi: "🍛",
+  "north-eastern": "🎋",
+  "bihari-purvanchali": "🍥",
+  continental: "🍝",
+  "momos-street-food": "🥟",
+  "sweets-mithai": "🍬",
+  "pickles-podis": "🫙",
 };
 
 /** Dietary tones are fixed, not cycled — these carry meaning, so the colour
@@ -85,6 +101,7 @@ export default async function Home() {
   let neighbourhoods: Awaited<ReturnType<typeof getNeighbourhoodsForCity>> = [];
   let promoted: Awaited<ReturnType<typeof getPromotedChefs>> = [];
   let trending: Awaited<ReturnType<typeof getTrendingChefs>> = [];
+  let trendingDishes: Awaited<ReturnType<typeof getTrendingDishes>> = [];
   let chefCount = 0;
 
   const primaryCity = (await getActiveCities().catch(() => []))[0];
@@ -92,7 +109,7 @@ export default async function Home() {
   const homeFaq = cityFaq(primaryCity?.name ?? "your city");
 
   try {
-    [cities, cuisines, dietaryTags, neighbourhoods, promoted, trending, chefCount] =
+    [cities, cuisines, dietaryTags, neighbourhoods, promoted, trending, trendingDishes, chefCount] =
       await Promise.all([
         getActiveCities(),
         getCuisines(),
@@ -100,6 +117,7 @@ export default async function Home() {
         getNeighbourhoodsForCity(citySlug),
         getPromotedChefs(citySlug, 4),
         getTrendingChefs(citySlug, 6),
+        getTrendingDishes(citySlug, 6),
         getApprovedChefCount(citySlug),
       ]);
   } catch (err) {
@@ -181,6 +199,8 @@ export default async function Home() {
           cuisineNames={cuisineNames}
           seeAllHref={`/${citySlug}`}
         />
+
+        <PopularDishes dishes={trendingDishes} />
 
         {neighbourhoods.length > 0 && (
           <section className="mt-14">

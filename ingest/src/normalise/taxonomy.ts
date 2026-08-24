@@ -12,7 +12,7 @@ import { clean, tokens } from "./text.js";
 /** Synonyms → cuisine slug. Keys are matched as whole words, case-insensitive. */
 const CUISINE_SYNONYMS: Record<string, string[]> = {
   biryani: ["biryani", "biriyani", "briyani", "dum biryani"],
-  "north-indian": ["north indian", "punjabi", "mughlai", "roti", "paratha", "chole"],
+  "north-indian": ["north indian", "roti", "paratha", "chole", "rajma"],
   "south-indian": ["south indian", "idli", "dosa", "sambar", "vada", "uttapam"],
   bengali: ["bengali", "bangali", "kosha", "macher", "ilish"],
   andhra: ["andhra", "telugu", "gongura", "rayalaseema"],
@@ -32,11 +32,46 @@ const CUISINE_SYNONYMS: Record<string, string[]> = {
     "desserts",
     "brownie",
     "cookies",
-    "sweets",
-    "mithai",
   ],
   "healthy-meals": ["healthy", "diet", "keto", "salad", "macro", "fitness", "protein"],
   "tiffin-thali": ["tiffin", "thali", "meal box", "lunch box", "dabba", "mess"],
+  // Below: added alongside the cuisine list expansion in supabase/seed.sql.
+  // Punjabi and Mughlai used to fall into the "north-indian" catch-all —
+  // pulled out here now that they have their own slugs, same reasoning as
+  // every entry above (a synonym maps to the MOST specific slug that exists).
+  punjabi: ["punjabi", "sarson da saag", "chole bhature", "amritsari", "makhani"],
+  "awadhi-mughlai": [
+    "awadhi",
+    "mughlai",
+    "lucknowi",
+    "korma",
+    "kebab",
+    "kebabs",
+    "nihari",
+    "galouti",
+  ],
+  chettinad: ["chettinad", "tamil brahmin", "iyengar"],
+  konkani: ["konkani", "gsb", "malvani"],
+  goan: ["goan", "vindaloo", "xacuti", "sorpotel", "feni"],
+  parsi: ["parsi", "dhansak", "sali boti", "parsi bhonu"],
+  kashmiri: ["kashmiri", "wazwan", "rogan josh", "yakhni"],
+  sindhi: ["sindhi", "sindhi kadhi", "sai bhaji"],
+  "north-eastern": ["north east", "northeastern", "naga", "assamese", "manipuri", "khasi", "axone"],
+  "bihari-purvanchali": ["bihari", "purvanchali", "litti", "chokha", "litti chokha", "thekua"],
+  continental: ["continental", "pasta", "italian", "risotto", "grilled"],
+  "momos-street-food": [
+    "momos",
+    "momo",
+    "chaat",
+    "street food",
+    "golgappa",
+    "pani puri",
+    "vada pav",
+  ],
+  // "sweets" and "mithai" moved out of bakes-desserts — Indian sweets are a
+  // distinct category from western-style bakery, and now have their own slug.
+  "sweets-mithai": ["mithai", "sweets", "ladoo", "barfi", "halwa", "peda", "gulab jamun"],
+  "pickles-podis": ["pickle", "pickles", "achar", "podi", "podis", "chutney powder"],
 };
 
 /**
