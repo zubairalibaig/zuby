@@ -553,6 +553,23 @@ that, the city generates a handful of qualifying pages, ranks for nothing, and
 teaches Google that our city pages are thin — damage that transfers to the cities
 that *are* dense, because these patterns are evaluated site-wide.
 
+**Status: the honest middle ground is built.** The five Tier-1 cities below exist
+as real `cities` rows (`is_active = false`) rather than being invented at request
+time — `getComingSoonCities()` in `src/lib/supabase/queries.ts`. `/<slug>` for each
+one renders `ComingSoonCity` instead of a directory: real, hand-written per-city
+context (`comingSoonCityBlurbs` in `src/lib/copy/landing.ts`), no fake listings, no
+FoodEstablishment/ItemList JSON-LD implying supply that doesn't exist, and two
+working WhatsApp CTAs (chef interest, buyer demand) reusing the same
+`NEXT_PUBLIC_FOUNDER_WHATSAPP_E164` pattern the claim flow already uses. Linked
+from the footer and `llms.txt` so the pages aren't orphaned, listed in the
+sitemap at a lower priority/monthly frequency than a live city. When a city
+crosses the 20/3 gate above, flip its `is_active` flag — the same URL becomes the
+real directory page, with whatever link equity the coming-soon page earned intact.
+This is deliberately NOT a substitute for the real per-city SEO buildout (dense
+neighbourhood/cuisine pages, local backlinks) once a city is actually live — it's
+the honest thing to show before that, and the mechanism that captures early chef
+supply so a city can cross the gate in the first place.
+
 **Tier structure:**
 
 - **Tier 1** — Delhi NCR, Mumbai, Hyderabad, Chennai, Pune. Metro density,

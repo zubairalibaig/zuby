@@ -64,6 +64,30 @@ export const copy = {
     backHome: "Back to Zuby",
   },
 
+  /**
+   * The honest pan-India page: real content for a city with zero listings yet
+   * — what's coming, why it isn't live today, and two working WhatsApp CTAs.
+   * Never implies a directory exists (docs/discoverability-strategy.md §13).
+   */
+  comingSoon: {
+    heading: (city: string) => `Zuby is coming to ${city}`,
+    subheading:
+      "We open one city at a time. Every kitchen is checked by a person before it goes live, and that only works once there's real chef supply on the ground — so this city opens once enough home chefs here have signed up.",
+    chefHeading: "Cook from home here?",
+    chefBody: (city: string) =>
+      `Message us and you'll be one of the first kitchens live in ${city} when we launch — free, zero commission, same as Bangalore.`,
+    chefCta: "I'm a home chef — notify me",
+    chefWaMessage: (city: string) =>
+      `Hi Zuby! I'm a home chef in ${city} — let me know when you launch here.`,
+    buyerHeading: "Want Zuby in your city?",
+    buyerBody: (city: string) =>
+      `Tell us you're waiting for ${city}. Real demand is exactly what moves a city up the list.`,
+    buyerCta: "Tell us you want Zuby here",
+    buyerWaMessage: (city: string) =>
+      `Hi Zuby! I'd love to see verified home chefs on Zuby in ${city}.`,
+    liveElsewhere: "Zuby is live right now in",
+  },
+
   neighbourhood: {
     heading: (neighbourhood: string) => `Home chefs in ${neighbourhood}`,
     empty: "No verified chefs here yet — check back soon, or widen your search.",
@@ -185,6 +209,7 @@ export const copy = {
     dietaryHeading: "Dietary",
     zubyHeading: "Zuby",
     citiesHeading: "Cities",
+    comingSoonHeading: "Coming soon",
     chefLogin: "Chef sign in",
     legal: "Zuby is a directory. Orders and payments happen directly with the chef.",
     madeIn: "Made in Bangalore 🇮🇳",

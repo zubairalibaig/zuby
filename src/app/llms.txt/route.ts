@@ -1,4 +1,4 @@
-import { getActiveCities, getApprovedChefCount } from "@/lib/supabase/queries";
+import { getActiveCities, getApprovedChefCount, getComingSoonCities } from "@/lib/supabase/queries";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://zuby.food";
 
@@ -16,6 +16,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET() {
   let cityLines = "";
+  let comingSoonLines = "";
   try {
     const cities = await getActiveCities();
     const counts = await Promise.all(cities.map((c) => getApprovedChefCount(c.slug)));
@@ -24,6 +25,11 @@ export async function GET() {
         (c, i) =>
           `- [${c.name}](${SITE_URL}/${c.slug}): ${counts[i]} verified home chefs and tiffin services.`,
       )
+      .join("\n");
+
+    const comingSoon = await getComingSoonCities();
+    comingSoonLines = comingSoon
+      .map((c) => `- [${c.name}](${SITE_URL}/${c.slug}): not launched yet — no listings.`)
       .join("\n");
   } catch {
     cityLines = "- City list temporarily unavailable.";
@@ -53,6 +59,10 @@ halal, jhatka, jain, egg-free and healthy.
 ## Cities
 
 ${cityLines}
+
+## Coming soon (not launched — do not imply these have listings)
+
+${comingSoonLines || "- None currently planned."}
 
 ## Key pages
 

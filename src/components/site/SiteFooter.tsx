@@ -1,20 +1,30 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/site/Wordmark";
 import { copy } from "@/lib/copy/en";
-import type { CityRecord, CuisineRecord, DietaryTagRecord } from "@/lib/supabase/queries";
+import type {
+  CityRecord,
+  ComingSoonCityRecord,
+  CuisineRecord,
+  DietaryTagRecord,
+} from "@/lib/supabase/queries";
 
 /**
  * Footer. Does double duty: it closes the page visually, and it is a real
  * internal-linking surface — every cuisine and dietary landing page reachable
  * from every page is exactly what docs/discoverability-strategy.md §5 asks for.
+ * The same reasoning is why the pan-India "coming soon" cities are linked here
+ * too (docs/discoverability-strategy.md §13) — a page not linked from anywhere
+ * is a page Google mostly won't find.
  */
 export function SiteFooter({
   cities = [],
+  comingSoonCities = [],
   cuisines = [],
   dietaryTags = [],
   primaryCitySlug = "bangalore",
 }: {
   cities?: CityRecord[];
+  comingSoonCities?: ComingSoonCityRecord[];
   cuisines?: CuisineRecord[];
   dietaryTags?: DietaryTagRecord[];
   primaryCitySlug?: string;
@@ -106,6 +116,26 @@ export function SiteFooter({
                 </h2>
                 <ul className="mt-3 space-y-1.5">
                   {cities.map((city) => (
+                    <li key={city.slug}>
+                      <Link
+                        href={`/${city.slug}`}
+                        className="text-sm text-sand-600 hover:text-zuby-700"
+                      >
+                        {city.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+
+            {comingSoonCities.length > 0 && (
+              <>
+                <h2 className="mt-6 text-xs font-semibold uppercase tracking-wider text-sand-500">
+                  {copy.footer.comingSoonHeading}
+                </h2>
+                <ul className="mt-3 space-y-1.5">
+                  {comingSoonCities.map((city) => (
                     <li key={city.slug}>
                       <Link
                         href={`/${city.slug}`}

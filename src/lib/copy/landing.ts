@@ -92,6 +92,25 @@ export const neighbourhoodBlurbs: Record<string, string> = {
 };
 
 /**
+ * Editorial for the pan-India "coming soon" pages (docs/discoverability-
+ * strategy.md §13). Keyed by city slug — see supabase/seed.sql's cities
+ * insert for the current list, all is_active = false until each crosses the
+ * documented chef-supply gate. Same rules as cuisineBlurbs above: specific,
+ * no invented statistics, nothing a person who knows the city would wince at.
+ */
+export const comingSoonCityBlurbs: Record<string, string> = {
+  "delhi-ncr":
+    "Delhi NCR runs on Punjabi and Mughlai home cooking — rajma-chawal, everyday dal, kebabs — alongside a large Kayastha, Bihari and Purvanchali food culture restaurants rarely represent well. Gurugram and Noida's dense apartment towers are exactly the tiffin-subscription demand a directory like this is built for.",
+  mumbai:
+    "Mumbai invented the dabbawala, the daily home-tiffin delivery network the whole idea of reliably-delivered home food is arguably named after. Maharashtrian, Gujarati, Parsi and Konkani home kitchens already run in nearly every suburb from Bandra to Thane — mostly found through a building's WhatsApp group rather than one searchable place.",
+  hyderabad:
+    "Hyderabad's home kitchens specialise in things that reward patience over speed: slow dum biryani, haleem through Ramadan, Irani-chai-and-Osmania-biscuit routines. Banjara Hills, Gachibowli and the Old City each carry a genuinely different food culture worth searching separately, not one generic 'Hyderabadi' bucket.",
+  chennai:
+    "Chennai's home kitchens carry Tamil Brahmin and Chettinad cooking most restaurants flatten for a broader audience — filter coffee made properly, sambar that tastes of one household's own masala, Chettinad meat curries with a spice depth restaurants rarely attempt at scale. Much of it already happens informally around T Nagar, Adyar and Velachery.",
+  pune: "Pune pairs a large student and IT population with strong Maharashtrian and Kolhapuri home cooking — misal, thalipeeth, puran poli — and one of India's highest tiffin-subscription rates per capita, driven by hostellers and PG residents across Koregaon Park, Baner and Viman Nagar.",
+};
+
+/**
  * Intent-page editorial. These target the head of the long tail — real search
  * demand with genuine informational intent behind it.
  */
@@ -114,7 +133,7 @@ export const intentPages = {
     metaTitle: (cityName: string, count: number) =>
       `Home-cooked food in ${cityName} — ${count} verified home chefs | Zuby`,
     metaDescription: (cityName: string, count: number) =>
-      `${count} verified home chefs cooking in ${cityName}. Find home-cooked meals near you — filter by cuisine, veg, halal, jain or egg-free — and order directly on WhatsApp.`,
+      `${count} verified home chefs cooking in ${cityName}. Find home food and home-cooked meals near you — filter by cuisine, veg, halal, jain or egg-free — and order directly on WhatsApp.`,
     intro: [
       "Home-cooked food in Indian cities has always been sold — through apartment WhatsApp groups, Instagram pages, and notices in lift lobbies. What it has never had is one place to search. That is the whole of what Zuby does.",
       "Every kitchen below has been checked by a person before appearing here: FSSAI number, photos, address, contact. Ordering happens on WhatsApp, directly with the cook, exactly as it does today — Zuby takes no commission and handles no money.",
@@ -141,6 +160,10 @@ export const cityFaq = (cityName: string): { q: string; a: string }[] => [
   {
     q: "What does Zuby charge?",
     a: `Nothing, to either side. Chefs pay no commission and no listing fee, and keep everything they earn. Buyers pay the chef directly. Zuby makes no money on any order placed through it today.`,
+  },
+  {
+    q: "How is Zuby different from Swiggy or Zomato?",
+    a: `Swiggy and Zomato are restaurant-delivery marketplaces — they take the order, handle delivery, and charge the restaurant a commission of roughly 20-30% per order. Zuby is a directory of home chefs, not restaurants: it helps you find a verified home kitchen and connects you to them on WhatsApp, but the chef takes the order, cooks it and arranges delivery themselves, the way home food has always worked. Zuby charges no commission, so it isn't trying to be a faster Swiggy — it's solving a problem Swiggy and Zomato don't: finding a real home cook, not a restaurant, near you.`,
   },
   {
     q: `How do I find chefs near me in ${cityName}?`,
