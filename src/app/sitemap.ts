@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import {
   getActiveCities,
   getAllApprovedChefUrls,
+  getComingSoonCities,
   getCuisines,
   getNeighbourhoodsForCity,
 } from "@/lib/supabase/queries";
@@ -28,14 +29,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let cities: Awaited<ReturnType<typeof getActiveCities>> = [];
   let cuisines: Awaited<ReturnType<typeof getCuisines>> = [];
   let chefUrls: Awaited<ReturnType<typeof getAllApprovedChefUrls>> = [];
+  let comingSoonCities: Awaited<ReturnType<typeof getComingSoonCities>> = [];
   try {
-    [cities, cuisines, chefUrls] = await Promise.all([
+    [cities, cuisines, chefUrls, comingSoonCities] = await Promise.all([
       getActiveCities(),
       getCuisines(),
       getAllApprovedChefUrls(),
+      getComingSoonCities(),
     ]);
   } catch (err) {
     console.warn("sitemap() partial — DB not reachable:", err);
+  }
+
+  // Pan-India "coming soon" pages (docs/discoverability-strategy.md §13) —
+  // real, indexable content at a lower priority than a live city, monthly
+  // rather than daily since nothing on them changes until a real launch.
+  for (const city of comingSoonCities) {
+    entries.push({ url: `${SITE_URL}/${city.slug}`, changeFrequency: "monthly", priority: 0.4 });
   }
 
   for (const city of cities) {

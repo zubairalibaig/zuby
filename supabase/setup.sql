@@ -2315,11 +2315,40 @@ insert into public.countries (id, code, name, currency_code, phone_prefix, is_ac
 on conflict (id) do nothing;
 
 -- ---------- cities ----------
+-- The five below (is_active = false) are the Tier-1 pan-India rollout targets
+-- named in docs/discoverability-strategy.md §13. They exist as real rows —
+-- CLAUDE.md: "countries and cities are first-class DB entities" — but stay
+-- inactive until each crosses the documented 20-chefs/3-neighbourhoods gate.
+-- getActiveCities() (src/lib/supabase/queries.ts) filters on is_active, so
+-- none of the ordinary directory surfaces (search, sitemap-of-listings,
+-- location picker) ever see them. Until a real launch, /<slug> renders the
+-- honest "coming soon" branch of src/app/(site)/[city]/page.tsx instead of a
+-- directory with nothing in it — see getComingSoonCities().
 insert into public.cities (id, country_id, slug, name, center, timezone, is_active) values
   ('00000000-0000-4000-8000-000000000101', '00000000-0000-4000-8000-000000000001',
    'bangalore', 'Bangalore',
    extensions.st_setsrid(extensions.st_makepoint(77.5946, 12.9716), 4326)::extensions.geography,
-   'Asia/Kolkata', true)
+   'Asia/Kolkata', true),
+  ('00000000-0000-4000-8000-000000000102', '00000000-0000-4000-8000-000000000001',
+   'delhi-ncr', 'Delhi NCR',
+   extensions.st_setsrid(extensions.st_makepoint(77.2090, 28.6139), 4326)::extensions.geography,
+   'Asia/Kolkata', false),
+  ('00000000-0000-4000-8000-000000000103', '00000000-0000-4000-8000-000000000001',
+   'mumbai', 'Mumbai',
+   extensions.st_setsrid(extensions.st_makepoint(72.8777, 19.0760), 4326)::extensions.geography,
+   'Asia/Kolkata', false),
+  ('00000000-0000-4000-8000-000000000104', '00000000-0000-4000-8000-000000000001',
+   'hyderabad', 'Hyderabad',
+   extensions.st_setsrid(extensions.st_makepoint(78.4867, 17.3850), 4326)::extensions.geography,
+   'Asia/Kolkata', false),
+  ('00000000-0000-4000-8000-000000000105', '00000000-0000-4000-8000-000000000001',
+   'chennai', 'Chennai',
+   extensions.st_setsrid(extensions.st_makepoint(80.2707, 13.0827), 4326)::extensions.geography,
+   'Asia/Kolkata', false),
+  ('00000000-0000-4000-8000-000000000106', '00000000-0000-4000-8000-000000000001',
+   'pune', 'Pune',
+   extensions.st_setsrid(extensions.st_makepoint(73.8567, 18.5204), 4326)::extensions.geography,
+   'Asia/Kolkata', false)
 on conflict (id) do nothing;
 
 -- ---------- neighbourhoods (real centroids) ----------

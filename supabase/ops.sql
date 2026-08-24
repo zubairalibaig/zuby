@@ -244,3 +244,40 @@ on conflict (city_id, slug) do nothing;
 -- select slug, name from public.cuisines order by name;
 -- select n.slug, n.name, c.slug as city from public.neighbourhoods n
 --   join public.cities c on c.id = n.city_id order by c.slug, n.name;
+
+
+-- ---------------------------------------------------------------------
+-- 9. PAN-INDIA "COMING SOON" CITIES
+-- ---------------------------------------------------------------------
+-- These five rows now ship in supabase/seed.sql for a fresh setup.sql run —
+-- this block is the equivalent for a LIVE project, where re-running setup.sql
+-- would wipe real data. Run this once; it's idempotent (on conflict do
+-- nothing), so re-running is harmless.
+--
+-- is_active stays false: getActiveCities() filters on it, so these never
+-- appear in search, the location picker, or the sitemap of real listings —
+-- /<slug> instead renders the honest "coming soon" branch of
+-- src/app/(site)/[city]/page.tsx (docs/discoverability-strategy.md §13's
+-- 20-chefs/3-neighbourhoods gate still applies before any of these flips to
+-- a real directory page).
+
+insert into public.cities (country_id, slug, name, center, timezone, is_active) values
+  ((select id from public.countries where code = 'IN'), 'delhi-ncr', 'Delhi NCR',
+    extensions.st_setsrid(extensions.st_makepoint(77.2090, 28.6139), 4326)::extensions.geography,
+    'Asia/Kolkata', false),
+  ((select id from public.countries where code = 'IN'), 'mumbai', 'Mumbai',
+    extensions.st_setsrid(extensions.st_makepoint(72.8777, 19.0760), 4326)::extensions.geography,
+    'Asia/Kolkata', false),
+  ((select id from public.countries where code = 'IN'), 'hyderabad', 'Hyderabad',
+    extensions.st_setsrid(extensions.st_makepoint(78.4867, 17.3850), 4326)::extensions.geography,
+    'Asia/Kolkata', false),
+  ((select id from public.countries where code = 'IN'), 'chennai', 'Chennai',
+    extensions.st_setsrid(extensions.st_makepoint(80.2707, 13.0827), 4326)::extensions.geography,
+    'Asia/Kolkata', false),
+  ((select id from public.countries where code = 'IN'), 'pune', 'Pune',
+    extensions.st_setsrid(extensions.st_makepoint(73.8567, 18.5204), 4326)::extensions.geography,
+    'Asia/Kolkata', false)
+on conflict (country_id, slug) do nothing;
+
+-- Sanity check:
+-- select slug, name, is_active from public.cities order by is_active desc, name;

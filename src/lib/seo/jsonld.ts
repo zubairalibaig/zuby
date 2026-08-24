@@ -76,6 +76,40 @@ export function chefJsonLd(
     ...(openingHoursSpecification(chef.timings)
       ? { openingHoursSpecification: openingHoursSpecification(chef.timings) }
       : {}),
+    ...(menuJsonLd(chef.menuItems) ? { hasMenu: menuJsonLd(chef.menuItems) } : {}),
+  };
+}
+
+/**
+ * Menu/MenuItem structured data. Google retired the standalone menu rich
+ * result in 2020, so this earns its place on entity understanding and AEO
+ * (an answer engine reading "what does this kitchen serve, and at what
+ * price" straight from structured data) rather than a SERP snippet — the
+ * same reasoning as openingHoursSpecification above. Unavailable items are
+ * left out entirely rather than marked out-of-stock: Zuby has no live
+ * inventory concept, "unavailable" here usually means "off the current
+ * rotation," not "sold out today."
+ */
+function menuJsonLd(menuItems: ChefDetail["menuItems"]) {
+  const items = menuItems.filter((m) => m.isAvailable);
+  if (items.length === 0) return undefined;
+
+  return {
+    "@type": "Menu",
+    hasMenuItem: items.map((item) => ({
+      "@type": "MenuItem",
+      name: item.name,
+      description: item.description ?? undefined,
+      ...(typeof item.price === "number"
+        ? {
+            offers: {
+              "@type": "Offer",
+              price: item.price,
+              priceCurrency: item.currencyCode,
+            },
+          }
+        : {}),
+    })),
   };
 }
 

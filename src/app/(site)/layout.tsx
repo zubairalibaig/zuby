@@ -1,6 +1,11 @@
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
-import { getActiveCities, getCuisines, getDietaryTags } from "@/lib/supabase/queries";
+import {
+  getActiveCities,
+  getComingSoonCities,
+  getCuisines,
+  getDietaryTags,
+} from "@/lib/supabase/queries";
 
 /**
  * Chrome for the public directory. A route group, so it wraps every buyer-facing
@@ -13,11 +18,13 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   let cities: Awaited<ReturnType<typeof getActiveCities>> = [];
   let cuisines: Awaited<ReturnType<typeof getCuisines>> = [];
   let dietaryTags: Awaited<ReturnType<typeof getDietaryTags>> = [];
+  let comingSoonCities: Awaited<ReturnType<typeof getComingSoonCities>> = [];
   try {
-    [cities, cuisines, dietaryTags] = await Promise.all([
+    [cities, cuisines, dietaryTags, comingSoonCities] = await Promise.all([
       getActiveCities(),
       getCuisines(),
       getDietaryTags(),
+      getComingSoonCities(),
     ]);
   } catch {
     /* DB unreachable — the footer degrades to brand + Zuby links */
@@ -29,6 +36,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <div className="flex-1">{children}</div>
       <SiteFooter
         cities={cities}
+        comingSoonCities={comingSoonCities}
         cuisines={cuisines}
         dietaryTags={dietaryTags}
         primaryCitySlug={cities[0]?.slug ?? "bangalore"}

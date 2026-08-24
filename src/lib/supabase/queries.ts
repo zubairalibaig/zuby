@@ -76,6 +76,34 @@ export async function getCityBySlug(slug: string): Promise<CityRecord | null> {
   return cities.find((c) => c.slug === slug) ?? null;
 }
 
+export interface ComingSoonCityRecord {
+  slug: string;
+  name: string;
+}
+
+/**
+ * Cities that exist as real rows (docs/discoverability-strategy.md §13's
+ * pan-India rollout targets) but aren't active yet — no chefs, no search
+ * results, not returned by getActiveCities(). `/<slug>` renders an honest
+ * "coming soon" page for these instead of a directory with nothing in it;
+ * see src/app/(site)/[city]/page.tsx.
+ */
+export async function getComingSoonCities(): Promise<ComingSoonCityRecord[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("cities")
+    .select("slug, name")
+    .eq("is_active", false)
+    .order("name");
+  if (error) throw new Error(`getComingSoonCities: ${error.message}`);
+  return data ?? [];
+}
+
+export async function getComingSoonCityBySlug(slug: string): Promise<ComingSoonCityRecord | null> {
+  const cities = await getComingSoonCities();
+  return cities.find((c) => c.slug === slug) ?? null;
+}
+
 export async function getNeighbourhoodsForCity(citySlug: string): Promise<NeighbourhoodRecord[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("neighbourhood_centroids");

@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import {
   getActiveCities,
   getCityBySlug,
+  getComingSoonCities,
+  getComingSoonCityBySlug,
   getCuisines,
   getNeighbourhoodsForCity,
   getApprovedChefCount,
@@ -12,6 +14,7 @@ import {
 import { ChefCard } from "@/components/directory/ChefCard";
 import { Breadcrumbs } from "@/components/directory/Breadcrumbs";
 import { JsonLd } from "@/components/directory/JsonLd";
+import { ComingSoonCity } from "@/components/directory/ComingSoonCity";
 import { breadcrumbJsonLd, itemListJsonLd } from "@/lib/seo/jsonld";
 import { copy } from "@/lib/copy/en";
 
@@ -27,8 +30,8 @@ export async function generateStaticParams() {
   // list here just means zero pages are pre-rendered; each still renders on
   // first request and is cached from then on (dynamicParams defaults true).
   try {
-    const cities = await getActiveCities();
-    return cities.map((c) => ({ city: c.slug }));
+    const [cities, comingSoon] = await Promise.all([getActiveCities(), getComingSoonCities()]);
+    return [...cities, ...comingSoon].map((c) => ({ city: c.slug }));
   } catch (err) {
     console.warn("generateStaticParams([city]) skipped — DB not reachable at build time:", err);
     return [];
@@ -38,14 +41,29 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: CityPageProps): Promise<Metadata> {
   const { city: citySlug } = await params;
   const city = await getCityBySlug(citySlug);
-  if (!city) return {};
+  if (city) {
+    const title = `Home chefs in ${city.name} | Zuby`;
+    const description = `Verified home chefs and tiffin services in ${city.name} — browse by neighbourhood and cuisine, filter by dietary need, and order on WhatsApp.`;
+    return {
+      title,
+      description,
+      alternates: { canonical: `/${city.slug}` },
+      openGraph: { title, description },
+    };
+  }
 
-  const title = `Home chefs in ${city.name} | Zuby`;
-  const description = `Verified home chefs and tiffin services in ${city.name} — browse by neighbourhood and cuisine, filter by dietary need, and order on WhatsApp.`;
+  // Pan-India "coming soon" cities (docs/discoverability-strategy.md §13) —
+  // real, indexable content, just honestly labelled as not live yet. Distinct
+  // from a real city's metadata above: no chef count to claim.
+  const comingSoon = await getComingSoonCityBySlug(citySlug);
+  if (!comingSoon) return {};
+
+  const title = `Zuby is coming to ${comingSoon.name} — home chefs & tiffin services | Zuby`;
+  const description = `Zuby isn't live in ${comingSoon.name} yet. We open one city at a time, verifying every home chef by hand — tell us you're a chef or a buyer here and we'll notify you at launch.`;
   return {
     title,
     description,
-    alternates: { canonical: `/${city.slug}` },
+    alternates: { canonical: `/${comingSoon.slug}` },
     openGraph: { title, description },
   };
 }
@@ -53,7 +71,11 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
 export default async function CityPage({ params }: CityPageProps) {
   const { city: citySlug } = await params;
   const city = await getCityBySlug(citySlug);
-  if (!city) notFound();
+  if (!city) {
+    const comingSoon = await getComingSoonCityBySlug(citySlug);
+    if (comingSoon) return <ComingSoonCity city={comingSoon} />;
+    notFound();
+  }
 
   const [neighbourhoods, cuisines, chefCount, featured] = await Promise.all([
     getNeighbourhoodsForCity(city.slug),
