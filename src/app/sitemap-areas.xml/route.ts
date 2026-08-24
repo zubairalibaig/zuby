@@ -1,5 +1,6 @@
 import { getActiveCities, getCuisines, getDietaryTags } from "@/lib/supabase/queries";
 import {
+  qualifyingCityCuisines,
   qualifyingCityDietary,
   qualifyingNeighbourhoodCuisines,
   qualifyingNeighbourhoodDietary,
@@ -37,12 +38,17 @@ export async function GET() {
         entries.push({ loc: `${SITE_URL}/${city.slug}/${intent.slug}`, priority: 0.8 });
       }
 
-      const [hoodCuisine, cityDietary, hoodDietary] = await Promise.all([
+      const [cityCuisine, hoodCuisine, cityDietary, hoodDietary] = await Promise.all([
+        qualifyingCityCuisines(city.slug),
         qualifyingNeighbourhoodCuisines(city.slug),
         qualifyingCityDietary(city.slug),
         qualifyingNeighbourhoodDietary(city.slug),
       ]);
 
+      for (const c of cityCuisine) {
+        if (!cuisineNames.has(c.key)) continue;
+        entries.push({ loc: `${SITE_URL}/${c.citySlug}/cuisine/${c.key}`, priority: 0.8 });
+      }
       for (const c of hoodCuisine) {
         if (!cuisineNames.has(c.key)) continue;
         entries.push({

@@ -65,6 +65,21 @@ export async function chefsForAreaDietary(
   });
 }
 
+/** Chefs matching a whole city (city centre, wide radius) + cuisine. */
+export async function chefsForCityCuisine(
+  citySlug: string,
+  area: { lat: number; lng: number },
+  cuisineSlug: string,
+): Promise<SearchChefResult[]> {
+  return searchChefs({
+    lat: area.lat,
+    lng: area.lng,
+    maxKm: AREA_RADIUS_KM,
+    citySlug,
+    cuisineSlugs: [cuisineSlug],
+  });
+}
+
 /** All chefs in an area, unfiltered — used by the intent pages. */
 export async function chefsForArea(
   citySlug: string,
@@ -110,6 +125,33 @@ export async function qualifyingNeighbourhoodCuisines(
           count: chefs.length,
         });
       }
+    }
+  }
+  return out;
+}
+
+/**
+ * Every city × cuisine combination that clears the threshold.
+ *
+ * The plain /<city>/cuisine/<cuisine> route (unlike its neighbourhood ×
+ * cuisine and city × dietary siblings) shipped in Phase 1 before the
+ * threshold rule existed and was missed by the later hardening pass — it
+ * generated a static page for every cuisine in the table regardless of chef
+ * count. That became a live thin-page risk the moment more cuisines than
+ * have chefs existed (supabase/seed.sql's 29, most of them freshly added
+ * with zero chefs yet). This is the same fix as qualifyingCityDietary,
+ * applied to the page that was missing it.
+ */
+export async function qualifyingCityCuisines(citySlug: string): Promise<QualifyingCombo[]> {
+  const [cities, cuisines] = await Promise.all([getActiveCities(), getCuisines()]);
+  const city = cities.find((c) => c.slug === citySlug);
+  if (!city) return [];
+
+  const out: QualifyingCombo[] = [];
+  for (const cuisine of cuisines) {
+    const chefs = await chefsForCityCuisine(citySlug, city, cuisine.slug);
+    if (qualifies(chefs.length)) {
+      out.push({ citySlug, neighbourhoodSlug: null, key: cuisine.slug, count: chefs.length });
     }
   }
   return out;

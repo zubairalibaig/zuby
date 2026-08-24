@@ -11,6 +11,7 @@ import {
   getTrendingChefs,
   getTrendingDishes,
 } from "@/lib/supabase/queries";
+import { qualifyingCityCuisines, qualifyingCityDietary } from "@/lib/seo/landings";
 import { Hero } from "@/components/home/Hero";
 import { TrustStrip } from "@/components/home/TrustStrip";
 import { CategoryTiles, type Tile } from "@/components/home/CategoryTiles";
@@ -102,6 +103,8 @@ export default async function Home() {
   let promoted: Awaited<ReturnType<typeof getPromotedChefs>> = [];
   let trending: Awaited<ReturnType<typeof getTrendingChefs>> = [];
   let trendingDishes: Awaited<ReturnType<typeof getTrendingDishes>> = [];
+  let qualifyingCuisineSlugs = new Set<string>();
+  let qualifyingDietarySlugs = new Set<string>();
   let chefCount = 0;
 
   const primaryCity = (await getActiveCities().catch(() => []))[0];
@@ -109,17 +112,37 @@ export default async function Home() {
   const homeFaq = cityFaq(primaryCity?.name ?? "your city");
 
   try {
-    [cities, cuisines, dietaryTags, neighbourhoods, promoted, trending, trendingDishes, chefCount] =
-      await Promise.all([
-        getActiveCities(),
-        getCuisines(),
-        getDietaryTags(),
-        getNeighbourhoodsForCity(citySlug),
-        getPromotedChefs(citySlug, 4),
-        getTrendingChefs(citySlug, 6),
-        getTrendingDishes(citySlug, 6),
-        getApprovedChefCount(citySlug),
-      ]);
+    let cityCuisineCombos: Awaited<ReturnType<typeof qualifyingCityCuisines>>;
+    let cityDietaryCombos: Awaited<ReturnType<typeof qualifyingCityDietary>>;
+    [
+      cities,
+      cuisines,
+      dietaryTags,
+      neighbourhoods,
+      promoted,
+      trending,
+      trendingDishes,
+      chefCount,
+      cityCuisineCombos,
+      cityDietaryCombos,
+    ] = await Promise.all([
+      getActiveCities(),
+      getCuisines(),
+      getDietaryTags(),
+      getNeighbourhoodsForCity(citySlug),
+      getPromotedChefs(citySlug, 4),
+      getTrendingChefs(citySlug, 6),
+      getTrendingDishes(citySlug, 6),
+      getApprovedChefCount(citySlug),
+      // Both feed the tile filters below — a tile that links to a page
+      // below the 2-chef threshold would be a dead-end 404 on the home
+      // page itself (that page correctly 404s below threshold; the fix
+      // here is to not link to it in the first place).
+      qualifyingCityCuisines(citySlug),
+      qualifyingCityDietary(citySlug),
+    ]);
+    qualifyingCuisineSlugs = new Set(cityCuisineCombos.map((c) => c.key));
+    qualifyingDietarySlugs = new Set(cityDietaryCombos.map((c) => c.key));
   } catch (err) {
     console.warn("Home page data skipped — DB not reachable:", err);
   }
@@ -127,18 +150,22 @@ export default async function Home() {
   const tagNames = Object.fromEntries(dietaryTags.map((t) => [t.slug, t.name]));
   const cuisineNames = Object.fromEntries(cuisines.map((c) => [c.slug, c.name]));
 
-  const cuisineTiles: Tile[] = cuisines.map((c) => ({
-    label: c.name,
-    href: `/${citySlug}/cuisine/${c.slug}`,
-    emoji: CUISINE_EMOJI[c.slug] ?? "🍽️",
-  }));
+  const cuisineTiles: Tile[] = cuisines
+    .filter((c) => qualifyingCuisineSlugs.has(c.slug))
+    .map((c) => ({
+      label: c.name,
+      href: `/${citySlug}/cuisine/${c.slug}`,
+      emoji: CUISINE_EMOJI[c.slug] ?? "🍽️",
+    }));
 
-  const dietaryTiles: Tile[] = dietaryTags.map((t) => ({
-    label: t.name,
-    href: `/${citySlug}/diet/${t.slug}`,
-    emoji: DIETARY_TILES[t.slug]?.emoji ?? "🍽️",
-    tone: DIETARY_TILES[t.slug]?.tone,
-  }));
+  const dietaryTiles: Tile[] = dietaryTags
+    .filter((t) => qualifyingDietarySlugs.has(t.slug))
+    .map((t) => ({
+      label: t.name,
+      href: `/${citySlug}/diet/${t.slug}`,
+      emoji: DIETARY_TILES[t.slug]?.emoji ?? "🍽️",
+      tone: DIETARY_TILES[t.slug]?.tone,
+    }));
 
   // If every discovery section would render nothing, show one deliberate empty
   // state instead of a dead gap between the hero and the trust band.

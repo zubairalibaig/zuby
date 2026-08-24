@@ -46,6 +46,37 @@ export const cuisineBlurbs: Record<string, string> = {
     "The useful version of a healthy meal from a home kitchen is portion control and real ingredients, not a label. Chefs in this category typically publish calories and macros per serving — look for the nutrition panel on the menu item rather than the word on the tin.",
   "tiffin-thali":
     "A daily tiffin is the oldest subscription in Indian food and still the best value in it. Most tiffin cooks run a fixed rotating menu, cook to a headcount, and want to know by the previous evening. Ask what the week looks like before committing.",
+  // Added alongside the cuisine-list expansion in supabase/seed.sql — see
+  // that migration's comment for why these 14 exist. Same rules as above:
+  // specific detail, no invented statistics, nothing a home cook would wince
+  // at reading.
+  punjabi:
+    "Punjabi home cooking outside a restaurant is dal left to simmer for hours rather than pressure-cooked flat, sarson da saag made with real mustard greens instead of a bottled paste, and rotis rolled to order. It's the cuisine most Bangalore restaurants claim to serve and least often actually do.",
+  "awadhi-mughlai":
+    "Awadhi and Mughlai cooking is built on dum — slow-sealed cooking in a covered pot — and on stock and fried onions made from scratch rather than bought in. A home kitchen doing a proper korma or a galouti kebab is committing real time to it; that's the entire difference from a fast version.",
+  chettinad:
+    "Chettinad food gets its heat from a specific, hand-ground spice mix — not chilli powder alone — roasted just before cooking rather than stored pre-mixed. Home kitchens making it properly grind small batches often; that freshness is most of what separates a real Chettinad curry from a flattened restaurant version.",
+  konkani:
+    "Konkani home cooking runs on coconut, kokum and a light hand with spice — closer to Mangalorean and Goan food than to anything called 'coastal' on a restaurant menu. Look for GSB (Gowd Saraswat Brahmin) vegetarian cooking here too, a distinct tradition often missing from general coastal listings.",
+  goan: "Goan home food splits along the same line as the state itself — Catholic households cooking pork vindaloo and sorpotel with vinegar and dried red chillies, Hindu households cooking fish curries built on coconut and kokum with no meat at all. Ask which tradition a kitchen cooks from; the two rarely overlap on one menu.",
+  parsi:
+    "Parsi cooking is one of India's smallest home-food traditions by number of people who make it, which is exactly why finding it matters. Dhansak — lentils, vegetables and meat cooked into one dish, always eaten with caramelised rice — is the dish to ask for; it's traditionally a Sunday food, not an everyday one.",
+  kashmiri:
+    "Kashmiri Wazwan cooking uses whole spices and yoghurt rather than tomato for its red colour and body — rogan josh gets its colour from Kashmiri chillies and cockscomb flower, not from tomatoes the way most restaurant versions fake it. A home kitchen making it from a Kashmiri household is a genuinely rare find outside Kashmir itself.",
+  sindhi:
+    "Sindhi home cooking is built around sindhi kadhi — a tangy, vegetable-heavy gram-flour curry closer to a stew than the yoghurt kadhi most of India knows — and a style of cooking that came out of Partition with almost no restaurant presence anywhere in India. What exists is almost entirely home kitchens.",
+  "north-eastern":
+    "North-Eastern home cooking — Naga, Assamese, Manipuri and neighbouring traditions — uses fermented and smoked ingredients (akhuni, bamboo shoot, dried fish) that most of India's restaurant scene doesn't stock and wouldn't know how to cook with. It's some of the least-represented food in Bangalore relative to how many people from the region live here.",
+  "bihari-purvanchali":
+    "Bihari and Purvanchali home food — litti chokha, sattu-based dishes, a style of cooking built around roasting over open flame — has a large audience in Bangalore's tech workforce and almost no restaurant presence. What exists mostly comes from home kitchens cooking for their own community first.",
+  continental:
+    "Continental and Italian from a home kitchen usually means fresh pasta made that day, sauces built from real tomatoes rather than a tinned base, and a shorter, changing menu instead of a laminated one with forty items. It's a small category on Zuby by design — most home chefs cooking this specialise rather than generalise.",
+  "momos-street-food":
+    "Home-kitchen momos and street food means a chutney made fresh rather than bottled, and a fry-to-order version of things usually served pre-cooked and reheated. Chaat in particular degrades fast after assembly, so it's the one category here worth ordering close to when you'll actually eat it.",
+  "sweets-mithai":
+    "Mithai from a home kitchen is usually a specific family recipe — one or two sweets made very well rather than a full counter of forty varieties — using ghee and reduced milk rather than the shortcuts a sweet shop scales with. Order ahead for festival dates; that's when the good kitchens sell out first.",
+  "pickles-podis":
+    "Pickles and podis are the one category built to last — most kitchens sell by the jar with a genuinely long shelf life, so it's worth ordering in bulk rather than one jar at a time. The difference between a good and an ordinary one is almost always oil quality and how recently it was actually made.",
 };
 
 /**
@@ -188,6 +219,14 @@ export const landingCopy = {
       `${cuisineName} home chefs in ${hoodName}, ${cityName} — ${count} verified | Zuby`,
     metaDescription: (count: number, cuisineName: string, hoodName: string) =>
       `${count} verified home chefs cooking ${cuisineName} in ${hoodName}. See menus, prices and dietary tags, then order directly on WhatsApp. No commission, no app.`,
+  },
+  cityCuisine: {
+    h1: (count: number, cuisineName: string, cityName: string) =>
+      `${count} ${cuisineName} home ${count === 1 ? "chef" : "chefs"} in ${cityName}`,
+    metaTitle: (count: number, cuisineName: string, cityName: string) =>
+      `${cuisineName} home chefs in ${cityName} — ${count} verified kitchens | Zuby`,
+    metaDescription: (count: number, cuisineName: string, cityName: string) =>
+      `${count} verified home chefs cooking ${cuisineName} in ${cityName}. See menus, prices and dietary tags, then order directly on WhatsApp. No commission, no app.`,
   },
   cityDietary: {
     h1: (count: number, tagName: string, cityName: string) =>
