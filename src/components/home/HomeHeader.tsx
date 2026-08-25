@@ -16,18 +16,33 @@ import { copy } from "@/lib/copy/en";
 export function HomeHeader({
   citySlug,
   neighbourhoods,
+  cityName,
+  cityLat,
+  cityLng,
 }: {
   citySlug: string;
   neighbourhoods: NeighbourhoodRecord[];
+  cityName?: string;
+  cityLat?: number;
+  cityLng?: number;
 }) {
   const [location, setLocation] = useState<ChosenLocation | null>(null);
 
-  const nearYouHref = location ? `/search?lat=${location.lat}&lng=${location.lng}` : "/search";
+  const nearYouHref = location
+    ? `/search?lat=${location.lat}&lng=${location.lng}${location.radiusKm ? `&radius=${location.radiusKm}` : ""}`
+    : "/search";
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <LocationPicker neighbourhoods={neighbourhoods} value={location} onChange={setLocation} />
+        <LocationPicker
+          neighbourhoods={neighbourhoods}
+          value={location}
+          onChange={setLocation}
+          cityName={cityName}
+          cityLat={cityLat}
+          cityLng={cityLng}
+        />
         <div className="flex-1">
           <OmniSearch citySlug={citySlug} location={location} />
         </div>

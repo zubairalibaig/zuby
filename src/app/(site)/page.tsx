@@ -183,6 +183,8 @@ export default async function Home() {
         neighbourhoods={neighbourhoods}
         chefCount={chefCount}
         cityName={primaryCity?.name ?? "your city"}
+        cityLat={primaryCity?.lat}
+        cityLng={primaryCity?.lng}
       />
 
       <div className="mx-auto max-w-6xl px-5">

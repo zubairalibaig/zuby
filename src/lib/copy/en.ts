@@ -226,6 +226,10 @@ export const copy = {
     nearMe: "Near me",
     areaFilterPlaceholder: "Search for your area…",
     noAreas: "No areas match that.",
+    allOfCity: (cityName: string) => `All of ${cityName}`,
+    changeLocation: "Change location",
+    expandedResultsNote: (radiusKm: number) =>
+      `No kitchens within your usual distance — showing kitchens up to ${radiusKm} km away instead. You'll want to check delivery with them directly.`,
 
     // Search
     searchPlaceholder: "Search for a kitchen, dish, cuisine or area",

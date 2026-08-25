@@ -6,7 +6,17 @@ import { cn } from "@/lib/utils";
 import { copy } from "@/lib/copy/en";
 import type { CuisineRecord, DietaryTagRecord } from "@/lib/supabase/queries";
 
-const RADIUS_OPTIONS = [2, 5, 10] as const;
+import { ALL_AREAS_RADIUS_KM } from "@/components/home/LocationPicker";
+
+/** The last option isn't really "a distance" — it's the same city-wide scope
+ *  LocationPicker's "All of <city>" choice sets, given its own label so it
+ *  doesn't read as "50 km" (which nobody actually means to pick). */
+const RADIUS_OPTIONS = [
+  { km: 2, label: "2 km" },
+  { km: 5, label: "5 km" },
+  { km: 10, label: "10 km" },
+  { km: ALL_AREAS_RADIUS_KM, label: "All areas" },
+] as const;
 
 interface FilterBarProps {
   cuisines: CuisineRecord[];
@@ -54,8 +64,8 @@ export function FilterBar({ cuisines, dietaryTags }: FilterBarProps) {
         <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-sand-500">
           {copy.search.radiusLabel}
         </p>
-        <div className="flex gap-2">
-          {RADIUS_OPTIONS.map((km) => (
+        <div className="flex flex-wrap gap-2">
+          {RADIUS_OPTIONS.map(({ km, label }) => (
             <button
               key={km}
               type="button"
@@ -67,7 +77,7 @@ export function FilterBar({ cuisines, dietaryTags }: FilterBarProps) {
                   : "bg-white text-sand-700 ring-sand-300 hover:ring-zuby-500/50",
               )}
             >
-              {km} km
+              {label}
             </button>
           ))}
         </div>

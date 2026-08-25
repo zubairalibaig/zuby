@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { HomeHeader } from "@/components/home/HomeHeader";
 import type { NeighbourhoodRecord } from "@/lib/supabase/queries";
 import { copy } from "@/lib/copy/en";
@@ -16,11 +17,15 @@ export function Hero({
   neighbourhoods,
   chefCount,
   cityName,
+  cityLat,
+  cityLng,
 }: {
   citySlug: string;
   neighbourhoods: NeighbourhoodRecord[];
   chefCount: number;
   cityName: string;
+  cityLat?: number;
+  cityLng?: number;
 }) {
   return (
     <section className="hero-warm relative border-b border-sand-200">
@@ -61,7 +66,21 @@ export function Hero({
         {/* The search card is the hero's real subject — elevated so it reads as
             the thing to do, not as a field in a form. */}
         <div className="mt-8 rounded-3xl border border-sand-200 bg-white/90 p-4 shadow-[0_8px_30px_rgba(92,34,0,0.07)] backdrop-blur sm:p-5">
-          <HomeHeader citySlug={citySlug} neighbourhoods={neighbourhoods} />
+          {/* LocationPicker reads useSearchParams() (to merge into the current
+              query string rather than replacing it — see its own comment),
+              which forces a Suspense boundary or the static export of "/"
+              fails outright. Fallback is null, same call as /login/page.tsx
+              makes for the same reason: this renders in well under a frame,
+              a spinner would just flash. */}
+          <Suspense fallback={null}>
+            <HomeHeader
+              citySlug={citySlug}
+              neighbourhoods={neighbourhoods}
+              cityName={cityName}
+              cityLat={cityLat}
+              cityLng={cityLng}
+            />
+          </Suspense>
         </div>
       </div>
     </section>

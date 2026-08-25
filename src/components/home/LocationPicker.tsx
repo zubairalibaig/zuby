@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { NeighbourhoodRecord } from "@/lib/supabase/queries";
 import { copy } from "@/lib/copy/en";
 
@@ -9,7 +9,17 @@ export interface ChosenLocation {
   label: string;
   lat: number;
   lng: number;
+  /** Set when this is the "All of <city>" choice — see ALL_AREAS_RADIUS_KM. */
+  radiusKm?: number;
 }
+
+/**
+ * The radius used for the "All of <city>" choice — wide enough to cover a
+ * whole metro from its centre point without meaning "unlimited" (a real
+ * ST_DWithin query stays index-backed either way). Matches the AREA_RADIUS_KM
+ * convention lib/seo/landings.ts already uses for city-wide queries.
+ */
+export const ALL_AREAS_RADIUS_KM = 50;
 
 const STORAGE_KEY = "zuby.location";
 
@@ -33,10 +43,19 @@ export function LocationPicker({
   neighbourhoods,
   value,
   onChange,
+  cityName,
+  cityLat,
+  cityLng,
 }: {
   neighbourhoods: NeighbourhoodRecord[];
   value: ChosenLocation | null;
   onChange: (loc: ChosenLocation | null) => void;
+  /** When provided, an "All of <cityName>" option is pinned above the area
+   *  list — a city-wide search isn't the same action as picking one area, so
+   *  it gets its own entry rather than being buried in the filterable list. */
+  cityName?: string;
+  cityLat?: number;
+  cityLng?: number;
 }) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
@@ -44,6 +63,7 @@ export function LocationPicker({
   const [locating, setLocating] = useState(false);
   const [denied, setDenied] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Restore the last choice so a returning buyer isn't asked again.
   useEffect(() => {
@@ -73,7 +93,17 @@ export function LocationPicker({
     // page that the buyer had to notice and click a second time. That read as
     // "nothing happened" / broken. Go straight to the results instead, same
     // as tapping "Show chefs near X" would — one action, one outcome.
-    router.push(`/search?lat=${loc.lat}&lng=${loc.lng}`);
+    //
+    // Merge into whatever's already in the URL rather than replacing it —
+    // this component is also used as the persistent "change location"
+    // control on /search itself now, where a buyer's dietary/cuisine filters
+    // must survive picking a new area (previously the only way to change
+    // location there was the browser back button, which lost them anyway).
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("lat", String(loc.lat));
+    params.set("lng", String(loc.lng));
+    if (loc.radiusKm) params.set("radius", String(loc.radiusKm));
+    router.push(`/search?${params.toString()}`);
   }
 
   function useMyLocation() {
@@ -162,6 +192,24 @@ export function LocationPicker({
               {locating ? copy.home.locating : copy.home.useMyLocation}
             </button>
             {denied && <p className="mt-2 text-xs text-sand-500">{copy.home.locationDenied}</p>}
+
+            {cityName && cityLat !== undefined && cityLng !== undefined && (
+              <button
+                type="button"
+                onClick={() =>
+                  choose({
+                    label: copy.home.allOfCity(cityName),
+                    lat: cityLat,
+                    lng: cityLng,
+                    radiusKm: ALL_AREAS_RADIUS_KM,
+                  })
+                }
+                className="mt-1.5 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-sand-700 hover:bg-sand-50"
+              >
+                <span aria-hidden>🗺️</span>
+                {copy.home.allOfCity(cityName)}
+              </button>
+            )}
 
             <input
               value={filter}
