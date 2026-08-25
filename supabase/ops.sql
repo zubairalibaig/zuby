@@ -208,10 +208,18 @@ update public.chefs set status = 'delisted' where slug = 'replace-with-chef-slug
 -- 20260815000017_admin_catalog.sql — so this SQL is a fallback, not the
 -- only way in: use it when you don't have the site open, or want to add
 -- several rows in one paste.
+--
+-- RAN ONE OF THESE UNEDITED BY MISTAKE? It happens — a whole SQL Editor
+-- paste is easy to run before noticing a value still says "EDIT ME". The
+-- placeholder text below is deliberately loud (not a plausible real
+-- cuisine or area name) so it's easy to spot on the site and easy to clean
+-- up — it will look exactly like what it is:
+--   delete from public.cuisines where slug = 'EDIT-ME-slug';
+--   delete from public.neighbourhoods where slug = 'EDIT-ME-slug';
 
--- New cuisine:
+-- New cuisine — ⚠️ EDIT BOTH VALUES BELOW BEFORE RUNNING:
 insert into public.cuisines (slug, name) values
-  ('replace-with-slug', 'Replace With Display Name')
+  ('EDIT-ME-slug', 'EDIT ME — real display name goes here')
 on conflict (slug) do nothing;
 
 -- Two small editorial follow-ups are optional, not required — the cuisine
@@ -221,12 +229,13 @@ on conflict (slug) do nothing;
 --  - cuisineBlurbs in src/lib/copy/landing.ts (two honest sentences; the
 --    cuisine's SEO landing pages render fine without one, just plainer)
 
--- New neighbourhood (Bangalore shown — swap the slug for another city):
+-- New neighbourhood (Bangalore shown — swap the slug for another city) —
+-- ⚠️ EDIT EVERY VALUE BELOW BEFORE RUNNING, including the coordinates:
 insert into public.neighbourhoods (city_id, slug, name, center) values
   (
     (select id from public.cities where slug = 'bangalore'),
-    'replace-with-slug',
-    'Replace With Display Name',
+    'EDIT-ME-slug',
+    'EDIT ME — real display name goes here',
     extensions.st_setsrid(
       extensions.st_makepoint(77.0000, 12.0000), -- lng, lat — note the order
       4326
