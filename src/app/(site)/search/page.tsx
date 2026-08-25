@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import {
   getActiveCities,
+  getChefsInCity,
   getCuisines,
   getDietaryTags,
   getNeighbourhoodsForCity,
@@ -52,10 +53,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const cuisineNamesFor = new Map(cuisines.map((c) => [c.slug, c.name]));
 
   let results: Awaited<ReturnType<typeof searchChefs>> = [];
-  // Set when the requested radius found nothing and a wider, city-wide look
-  // did — the banner below is what keeps that from reading as "here are some
-  // random results" instead of a deliberate fallback.
+  // Set when the requested radius found nothing and a wider look did — the
+  // banner below is what keeps that from reading as "here are some random
+  // results" instead of a deliberate fallback. "browse-all" is the stronger
+  // version: not filtered by distance at all, only shown when even the
+  // widest point-radius search came up empty.
   let expandedFromKm: number | null = null;
+  let expandedToBrowseAll = false;
 
   if (hasLocation) {
     const radius = Number(sp.radius ?? "5");
@@ -63,32 +67,57 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     const tagSlugs = (sp.tags ?? "").split(",").filter(Boolean);
     const cuisineSlugs = (sp.cuisines ?? "").split(",").filter(Boolean);
     const verifiedOnly = sp.verified !== "0";
+    const tagsOrNull = tagSlugs.length > 0 ? tagSlugs : null;
+    const cuisinesOrNull = cuisineSlugs.length > 0 ? cuisineSlugs : null;
 
     const runSearch = async (maxKm: number) => {
       let r = await searchChefs({
         lat: lat as number,
         lng: lng as number,
         maxKm,
-        tagSlugs: tagSlugs.length > 0 ? tagSlugs : null,
-        cuisineSlugs: cuisineSlugs.length > 0 ? cuisineSlugs : null,
+        tagSlugs: tagsOrNull,
+        cuisineSlugs: cuisinesOrNull,
       });
       if (verifiedOnly) r = r.filter((c) => c.is_verified);
       return r;
     };
 
-    results = await runSearch(effectiveRadius);
+    // "All areas" (LocationPicker's pinned "All of <city>" option) is a
+    // fundamentally different question from "who delivers to this point" —
+    // it means the whole city's directory, full stop. Routing it through
+    // searchChefs (point + radius) was the actual bug reported: search_chefs
+    // gates on least(chef's own radius, this radius), so a big radius from a
+    // single centre point can only ever narrow toward a chef's own radius,
+    // never widen past it — a kitchen whose radius doesn't reach that exact
+    // point stays invisible no matter how "all areas" the buyer's choice
+    // was. chefs_in_city() has no geo gate at all; it's the real thing this
+    // option was supposed to do (see its migration comment, 20260815000020).
+    if (effectiveRadius >= ALL_AREAS_RADIUS_KM && fallbackCity) {
+      results = await getChefsInCity(fallbackCity.slug, tagsOrNull, cuisinesOrNull);
+      if (verifiedOnly) results = results.filter((c) => c.is_verified);
+    } else {
+      results = await runSearch(effectiveRadius);
 
-    // Zuby doesn't arrange delivery — a chef's own service_radius_km already
-    // decides who's shown, so a wider look here just surfaces kitchens that
-    // are further away but still willing to deliver, never ones that
-    // wouldn't. Only worth trying if the requested radius wasn't already
-    // "all areas" — expanding from the widest search onto itself finds
-    // nothing new.
-    if (results.length === 0 && effectiveRadius < ALL_AREAS_RADIUS_KM) {
-      const wider = await runSearch(ALL_AREAS_RADIUS_KM);
-      if (wider.length > 0) {
-        results = wider;
-        expandedFromKm = ALL_AREAS_RADIUS_KM;
+      // Zuby doesn't arrange delivery — a chef's own service_radius_km
+      // already decides who's shown, so a wider look here just surfaces
+      // kitchens that are further away but still willing to deliver, never
+      // ones that wouldn't.
+      if (results.length === 0) {
+        const wider = await runSearch(ALL_AREAS_RADIUS_KM);
+        if (wider.length > 0) {
+          results = wider;
+          expandedFromKm = ALL_AREAS_RADIUS_KM;
+        } else if (fallbackCity) {
+          // Nobody's own radius reaches this point even at the widest look —
+          // fall all the way back to the whole city's directory rather than
+          // a dead end, clearly labelled as not distance-filtered at all.
+          const cityWide = await getChefsInCity(fallbackCity.slug, tagsOrNull, cuisinesOrNull);
+          const filtered = verifiedOnly ? cityWide.filter((c) => c.is_verified) : cityWide;
+          if (filtered.length > 0) {
+            results = filtered;
+            expandedToBrowseAll = true;
+          }
+        }
       }
     }
 
@@ -144,7 +173,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
           <div>
             <p className="mb-4 text-sm text-sand-500">{copy.search.resultCount(results.length)}</p>
-            {expandedFromKm && (
+            {expandedToBrowseAll && (
+              <p className="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                {copy.home.browseAllResultsNote}
+              </p>
+            )}
+            {expandedFromKm && !expandedToBrowseAll && (
               <p className="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
                 {copy.home.expandedResultsNote(expandedFromKm)}
               </p>

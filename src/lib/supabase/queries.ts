@@ -190,6 +190,32 @@ export async function searchChefs(params: SearchParams): Promise<SearchChefResul
   return data ?? [];
 }
 
+/**
+ * Every approved chef in a city, full stop — no geo gate at all. Distinct
+ * from searchChefs(): that function's "does this chef deliver to this exact
+ * point" question is fundamentally different from "show me the whole city's
+ * directory," and answering the second by passing a big max_km into the
+ * first silently does neither — see chefs_in_city()'s own migration comment
+ * (20260815000020) for the bug that shipped from conflating the two.
+ */
+export async function getChefsInCity(
+  citySlug: string,
+  tagSlugs?: string[] | null,
+  cuisineSlugs?: string[] | null,
+): Promise<SearchChefResult[]> {
+  const supabase = await createClient();
+  const cityId = await cityIdFor(citySlug);
+  if (!cityId) return [];
+
+  const { data, error } = await supabase.rpc("chefs_in_city", {
+    p_city: cityId,
+    p_tag_slugs: tagSlugs && tagSlugs.length > 0 ? tagSlugs : null,
+    p_cuisine_slugs: cuisineSlugs && cuisineSlugs.length > 0 ? cuisineSlugs : null,
+  });
+  if (error) throw new Error(`getChefsInCity: ${error.message}`);
+  return data ?? [];
+}
+
 export interface ChefMenuItem {
   id: string;
   name: string;
