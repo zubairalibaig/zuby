@@ -51,30 +51,43 @@ export function QueueActions({
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => run(() => setChefStatus(chefId, "approved", note))}
-          className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-        >
-          Approve &amp; publish
-        </button>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => run(() => requestInfo(chefId, note))}
-          className="rounded-md border border-amber-400 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-50 disabled:opacity-50"
-        >
-          Request info
-        </button>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => run(() => setChefStatus(chefId, "rejected", note))}
-          className="rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
-        >
-          Reject
-        </button>
+        {/* These three are review-stage actions — they stopped applying the
+            moment the listing went live, but rendered unconditionally
+            regardless of status: an already-approved chef showed "Approve &
+            publish" / "Request info" / "Reject" right alongside Suspend and
+            Delist, which read as if approval hadn't taken effect. Gated to
+            everything except the live state, matching Suspend/Delist's own
+            isLive check below — this also means an admin can re-approve a
+            rejected/suspended/delisted listing straight from here, which is
+            the one case worth keeping "Approve" around for outside review. */}
+        {!isLive && (
+          <>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => run(() => setChefStatus(chefId, "approved", note))}
+              className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+            >
+              Approve &amp; publish
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => run(() => requestInfo(chefId, note))}
+              className="rounded-md border border-amber-400 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+            >
+              Request info
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => run(() => setChefStatus(chefId, "rejected", note))}
+              className="rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+            >
+              Reject
+            </button>
+          </>
+        )}
         {isLive && (
           <>
             <button
