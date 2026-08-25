@@ -23,9 +23,24 @@ number is required for the site's core feature (the WhatsApp order button)
 to work at all, and none of these should be promoted without a real
 verification call regardless, per the standard admin-approval flow.
 
-**Nothing here has been written to any database.** No live Supabase project
-is connected to this session — see the session notes for how to actually
-load this once one is.
+**Update:** both records in the "ready" section below have since been loaded
+into the real database by hand (direct SQL, not the ingest pipeline — see
+the session notes). **Pâte Sucrée is approved and live.** **Karnivore
+Kitchen By Kalyan is still stuck in `pending_review`** — it was inserted
+with no neighbourhood, and a fix from this same session now blocks
+approving any chef without one (a chef page's only URL is
+`/<city>/<neighbourhood>/<chef>`). It needs its area confirmed on the
+verification call, then:
+```sql
+update public.chefs set neighbourhood_id = (
+  select id from public.neighbourhoods
+   where city_id = '00000000-0000-4000-8000-000000000101' and slug = 'the-real-area-slug'
+) where slug = 'karnivore-kitchen-by-kalyan';
+```
+before it can be approved from `/admin/queue`.
+
+See `bangalore-batch-2.md` for a second, larger round — same method, same
+constraints, run after the request to find "at least 100."
 
 ---
 
