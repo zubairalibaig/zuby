@@ -112,6 +112,40 @@ chef who prefers that gets an email with nothing to type. Put the code first:
 `{{ .Token }}` is the 6-digit code. Keep the word "Zuby" in the subject line —
 chefs will be scanning a crowded inbox on a phone.
 
+### Also required: the Confirm Signup template
+
+**This is why a brand-new chef gets "Confirm Your Signup" from `noreply@mail.app.supabase.io`
+instead of a code, even though `/login` is already a pure OTP flow.** `/login`
+calls `signInWithOtp({ shouldCreateUser: true })` for every email, whether or not
+that address has signed in before. Supabase treats those two cases as different
+events and fires a different template for each:
+
+- an email that **already has an account** → **Magic Link** template (the one above)
+- an email signing in **for the first time** → **Confirm Signup** template — a
+  separate template, untouched by step above, still on Supabase's default copy
+  and default `noreply@mail.app.supabase.io` sender
+
+Since almost every chef's first login *is* their signup, most chefs hit this
+template, not Magic Link — editing only Magic Link fixes the login screen for
+returning chefs and leaves first-time ones exactly where the bug report
+described. Both templates need the same treatment.
+
+**Authentication → Email Templates → Confirm signup.** Replace the default
+"Confirm your signup" link-only body with the same code-first content:
+
+```html
+<h2>Welcome to Zuby</h2>
+<p>Enter this code to finish signing in:</p>
+<p style="font-size:32px;font-weight:700;letter-spacing:6px">{{ .Token }}</p>
+<p>The code expires in an hour. If you didn't ask for it, ignore this email.</p>
+```
+
+This only fixes the *content*. The sender still shows as generic Supabase
+(`noreply@mail.app.supabase.io`) until Custom SMTP (step 2, above) is turned
+on — that's what makes every Auth email, on both templates, send from
+`hello@zuby.food` / display name "Zuby" instead. Do both: SMTP for the sender
+identity, both templates for the code.
+
 ---
 
 ## Step 3 — Transactional email env vars
@@ -155,7 +189,8 @@ chefs will be scanning a crowded inbox on a phone.
 | Admin requests changes | The admin's note + dashboard link | Listing owner |
 | Admin approves a claim | "You now manage this kitchen" + URL | Claimant |
 | Admin rejects a claim | Why, and how to follow up | Claimant |
-| Chef signs in | 6-digit OTP code | Whoever is signing in |
+| Chef signs in (first time — a signup) | 6-digit OTP code, via **Confirm Signup** template | Whoever is signing in |
+| Chef signs in (returning) | 6-digit OTP code, via **Magic Link** template | Whoever is signing in |
 
 The first four come from `src/lib/email/send.ts`; the last is Supabase Auth.
 
@@ -177,6 +212,12 @@ courtesy on top.
   the `Name <address>` shape, e.g. `Zuby <hello@zuby.food>`.
 - **Login codes stop after a few** — Supabase is still on its built-in sender.
   Redo step 2; check custom SMTP is actually toggled on.
+- **First-time chefs get a "Confirm Your Signup" email with a link, no code, from
+  `noreply@mail.app.supabase.io`, even though returning chefs get a proper Zuby
+  code email** — the Magic Link template was edited but the separate Confirm
+  Signup template wasn't. See "Also required: the Confirm Signup template" above;
+  both templates need the `{{ .Token }}` rewrite, and both need Custom SMTP (step 2)
+  turned on for the sender to show as Zuby.
 - **Mail lands in spam** — usually DKIM not verified or DMARC missing. Recheck
   step 1, and confirm those DNS records are grey-cloud in Cloudflare.
 - **Nothing at all, no error** — a chef only gets email if their account has an

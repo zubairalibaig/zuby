@@ -514,6 +514,10 @@ export type Database = {
         Args: { p_city?: string | null; p_days?: number; p_limit?: number };
         Returns: SearchChefResult[];
       };
+      chefs_in_city: {
+        Args: { p_city: string; p_tag_slugs?: string[] | null; p_cuisine_slugs?: string[] | null };
+        Returns: SearchChefResult[];
+      };
       trending_dishes: {
         Args: { p_city?: string | null; p_days?: number; p_limit?: number };
         Returns: {

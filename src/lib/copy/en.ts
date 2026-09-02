@@ -230,6 +230,8 @@ export const copy = {
     changeLocation: "Change location",
     expandedResultsNote: (radiusKm: number) =>
       `No kitchens within your usual distance — showing kitchens up to ${radiusKm} km away instead. You'll want to check delivery with them directly.`,
+    browseAllResultsNote:
+      "No kitchens deliver quite that far — showing every verified kitchen in the city instead, not filtered by distance. You'll want to check delivery with them directly.",
 
     // Search
     searchPlaceholder: "Search for a kitchen, dish, cuisine or area",
